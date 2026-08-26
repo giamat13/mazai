@@ -1189,7 +1189,7 @@
     let turboMode = false, frameCounter = 0;
     let showSensors = true, showTrail = true, showHud = true, showPolicy = true;
     let epsilon = 1.0;
-    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
+    const EPS_MIN = 0.01, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
 
     // ---- round bookkeeping (a "round" = one full lap attempt + one park attempt) ----
     let phase = 'race'; // 'race' | 'park'
@@ -1964,7 +1964,7 @@
     let episode = 0;
     let stepsInEpisode = 0;
     let epsilon = 1.0;
-    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
+    const EPS_MIN = 0.01, EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
     let maxStepsPerEpisode = 400;
     let bestLen = 1, foodEaten = 0;
     let scoreHistory = [], lenHistory = [];
@@ -2075,6 +2075,13 @@
       const dangerRight = dangerAt(right.r, right.c);
       const dangerLeft = dangerAt(left.r, left.c);
 
+      // 2-step lookahead: is it a dead end 2 cells deep if we keep going the same way?
+      // this lets the agent see trouble one move before it's forced into it,
+      // instead of only reacting to what's directly adjacent.
+      const danger2Straight = dangerStraight || dangerAt(wrapCoord(straight.r+dr, straight.c+dc).r, wrapCoord(straight.r+dr, straight.c+dc).c) ? 1 : 0;
+      const danger2Right = dangerRight || dangerAt(wrapCoord(right.r+rdr, right.c+rdc).r, wrapCoord(right.r+rdr, right.c+rdc).c) ? 1 : 0;
+      const danger2Left = dangerLeft || dangerAt(wrapCoord(left.r+ldr, left.c+ldc).r, wrapCoord(left.r+ldr, left.c+ldc).c) ? 1 : 0;
+
       // food direction relative to heading: ahead/behind, left/right
       let fr = food.r - head.r, fc = food.c - head.c;
       if(wrapMode){
@@ -2090,7 +2097,7 @@
       const foodFwd = fwdAxis>0 ? 2 : (fwdAxis<0 ? 0 : 1);       // 0 behind,1 same,2 ahead
       const foodRight = rightAxis>0 ? 2 : (rightAxis<0 ? 0 : 1); // 0 left,1 same,2 right
 
-      return [dangerStraight,dangerRight,dangerLeft,foodFwd,foodRight].join(',');
+      return [dangerStraight,dangerRight,dangerLeft,danger2Straight,danger2Right,danger2Left,foodFwd,foodRight].join(',');
     }
 
     function getQ(state){
@@ -2945,6 +2952,7 @@
 
     const PADDLE_STEP = 8; // px per action
     const N_BUCKETS = 9;   // buckets for continuous quantities
+    const MAX_BALL_SPEED = 8.5; // cap so the ball can never out-accelerate the paddle's reachable speed
 
     const canvas = document.getElementById('pongCanvas');
     const ctx = canvas.getContext('2d');
@@ -3032,9 +3040,9 @@
       if(ball.x <= paddleX + PADDLE_W){
         if(ball.y >= paddleY && ball.y <= paddleY+paddleH){
           ball.x = paddleX + PADDLE_W;
-          ball.vx = Math.abs(ball.vx) + diff.accel;
+          ball.vx = Math.min(MAX_BALL_SPEED, Math.abs(ball.vx) + diff.accel);
           const offset = (ball.y - (paddleY+paddleH/2)) / (paddleH/2); // -1..1
-          ball.vy += offset*1.2;
+          ball.vy = Math.max(-MAX_BALL_SPEED, Math.min(MAX_BALL_SPEED, ball.vy + offset*1.2));
           reward = 5;
           rally++; totalHits++;
         } else {
@@ -3220,7 +3228,7 @@
     let epsilon = 1.0;
     const EPS_MIN = 0.02, EPS_DECAY = 0.995, ALPHA = 0.2, GAMMA = 0.98;
     const SOLVED_STEPS = 300;
-    let maxStepsPerEpisode = 800;
+    let maxStepsPerEpisode = Infinity; // no artificial ceiling — an episode only ends when the pole actually falls or the cart runs off track
     let bestSteps = 0, solvedCount = 0;
     let stepsHistory = [], chartHistory = [];
     let isTraining = false, stepsPerFrame = 10;
@@ -3310,6 +3318,7 @@
       const nextMax = done ? 0 : Math.max(...getQ(state1));
       q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       stepsInEpisode++;
+      if(stepsInEpisode > bestSteps) bestSteps = stepsInEpisode; // update the record live, not just when the episode ends
       if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
     }
 

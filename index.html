@@ -182,6 +182,11 @@
         <span class="title">עמוד מאוזן</span>
         <span class="desc">ההדגמה הקלאסית של תחום ה-RL: סוכן AI לומד לדחוף עגלה שמאלה וימינה כדי לשמור על מוט זקוף מעליה</span>
       </button>
+      <button class="mode-card" data-mode="flappy">
+        <span class="emoji">🐦</span>
+        <span class="title">פלאפי בירד</span>
+        <span class="desc">סוכן AI לומד מתי לקפוץ כדי לחמוק בין צינורות מתקרבים, בלי לפגוע בהם או ליפול לקרקע</span>
+      </button>
     </div>
   </div>
 
@@ -231,6 +236,10 @@
               <button class="eval-btn" id="mzBtnEval">🧪 מצב בדיקה</button>
             </div>
             <div class="eval-overlay" id="mzEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="mzEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="mzEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="mzEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="mzBtnExport">⬇️ ייצוא שמירה</button>
               <button class="btn-secondary" id="mzBtnImport">⬆️ ייבוא שמירה</button>
@@ -270,11 +279,6 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="mzBtnNewMaze">🎲 מבוך חדש</button>
             </div>
-            <label class="field">
-              מהירות אימון: <b id="mzSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="mzSpeedSlider" min="1" max="3000" value="10">
-            </label>
-            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="mzChkTurbo"></div>
             <div class="toggle-row"><span>הצג מפת חום (ערכי Q)</span><input type="checkbox" id="mzChkHeatmap" checked></div>
             <div class="toggle-row"><span>הצג חצי מדיניות נלמדת</span><input type="checkbox" id="mzChkPolicy" checked></div>
             <div class="toggle-row"><span>הצג נתיב אפיזודה נוכחית</span><input type="checkbox" id="mzChkTrail" checked></div>
@@ -349,6 +353,10 @@
               <button class="eval-btn" id="rpBtnEval">🧪 מצב בדיקה</button>
             </div>
             <div class="eval-overlay" id="rpEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="rpEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="rpEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="rpEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="rpBtnExport">⬇️ ייצוא שמירה</button>
               <button class="btn-secondary" id="rpBtnImport">⬆️ ייבוא שמירה</button>
@@ -373,11 +381,6 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="rpBtnNewRound">🎲 מסלול+מגרש חדשים</button>
             </div>
-            <label class="field">
-              מהירות אימון: <b id="rpSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="rpSpeedSlider" min="1" max="3000" value="10">
-            </label>
-            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="rpChkTurbo"></div>
             <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="rpChkSensors" checked></div>
             <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="rpChkTrail" checked></div>
             <div class="toggle-row"><span>הצג חצי מדיניות נלמדת (בשלב המרוץ)</span><input type="checkbox" id="rpChkPolicy" checked></div>
@@ -449,6 +452,10 @@
               <button class="eval-btn" id="snBtnEval">🧪 מצב בדיקה</button>
             </div>
             <div class="eval-overlay" id="snEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="snEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="snEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="snEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="snBtnExport">⬇️ ייצוא שמירה</button>
               <button class="btn-secondary" id="snBtnImport">⬆️ ייבוא שמירה</button>
@@ -474,11 +481,6 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="snBtnNewGame">🎲 לוח חדש</button>
             </div>
-            <label class="field">
-              מהירות אימון: <b id="snSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="snSpeedSlider" min="1" max="3000" value="10">
-            </label>
-            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="snChkTurbo"></div>
             <div class="toggle-row"><span>הצג נתיב תנועה אחרון</span><input type="checkbox" id="snChkTrail" checked></div>
             <div class="toggle-row"><span>מעבר דרך קירות (Wrap)</span><input type="checkbox" id="snChkWrap"></div>
           </div>
@@ -548,6 +550,10 @@
               <button class="eval-btn" id="pgBtnEval">🧪 מצב בדיקה</button>
             </div>
             <div class="eval-overlay" id="pgEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="pgEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="pgEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="pgEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="pgBtnExport">⬇️ ייצוא שמירה</button>
               <button class="btn-secondary" id="pgBtnImport">⬆️ ייבוא שמירה</button>
@@ -572,11 +578,6 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="pgBtnNewGame">🎲 סיבוב חדש</button>
             </div>
-            <label class="field">
-              מהירות אימון: <b id="pgSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="pgSpeedSlider" min="1" max="3000" value="10">
-            </label>
-            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="pgChkTurbo"></div>
             <div class="toggle-row"><span>הצג נתיב תנועת כדור אחרון</span><input type="checkbox" id="pgChkTrail" checked></div>
           </div>
           <div>
@@ -641,6 +642,10 @@
               <button class="eval-btn" id="cpBtnEval">🧪 מצב בדיקה</button>
             </div>
             <div class="eval-overlay" id="cpEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="cpEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="cpEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="cpEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="cpBtnExport">⬇️ ייצוא שמירה</button>
               <button class="btn-secondary" id="cpBtnImport">⬆️ ייבוא שמירה</button>
@@ -658,11 +663,6 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="cpBtnNewGame">🎲 התחלה חדשה</button>
             </div>
-            <label class="field">
-              מהירות אימון: <b id="cpSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="cpSpeedSlider" min="1" max="3000" value="10">
-            </label>
-            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="cpChkTurbo"></div>
             <div class="toggle-row"><span>הצג עקבות תנועת עגלה</span><input type="checkbox" id="cpChkTrail" checked></div>
           </div>
           <div>
@@ -684,6 +684,94 @@
       </div>
       <p class="footer-note">
         זו ההדגמה הפיזיקלית המפורסמת ביותר בתחום ה-RL. הסוכן בוחר בכל צעד רק בין דחיפת העגלה שמאלה או ימינה, על סמך מצב מצומצם ל-4 משתנים בדידים: מיקום העגלה, מהירותה, זווית המוט וקצב הנטייה שלו — כל אחד מחולק לתאים בודדים כדי לאפשר למידת Q עם טבלה קטנה. כל צעד שהמוט נשאר זקוף (עד סטייה של כ-12 מעלות) והעגלה בתוך המסילה נותן תגמול של 1; נפילת המוט או יציאה מהמסילה מסיימת את האפיזודה. אפיזודה שמחזיקה מעל 300 צעדים נספרת כ"פתורה". רמת הקושי קובעת את רוחב המסילה הזמינה לעגלה.
+      </p>
+    </div>
+
+    <!-- ================= FLAPPY BIRD SECTION ================= -->
+    <div id="flappySection" style="display:none;">
+      <h1>🐦 Mazai — פלאפי בירד</h1>
+      <p class="subtitle">הציפור לומדת מתי לקפוץ כדי לחמוק בין הצינורות</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="flCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--agent)"></span> הציפור</span>
+            <span><span class="dot" style="background:var(--wall)"></span> צינור</span>
+          </div>
+          <div class="heat-legend">
+            <span>0 צינורות שנחצו</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#a06cff);"></div><span>מגמת שיפור</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="flStatEpisode">0</div></div>
+              <div class="stat"><div class="label">צינורות (נוכחי)</div><div class="value" id="flStatScore">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="flStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צינורות</div><div class="value" id="flStatBest">0</div></div>
+              <div class="stat"><div class="label">ממוצע (50 אחרונות)</div><div class="value" id="flStatAvg">0</div></div>
+              <div class="stat"><div class="label">סה"כ צינורות שנחצו</div><div class="value" id="flStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">צינורות שנחצו לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
+            <canvas id="flChart" class="chart" height="70"></canvas>
+          </div>
+          <div class="confidence-wrap">
+            <div class="label">ביטחון הסוכן בהחלטה הנוכחית</div>
+            <div class="confidence-bar"><div class="fill" id="flConfFill" style="width:0%; background:#888;"></div></div>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="flBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="flBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="flBtnEval">🧪 מצב בדיקה</button>
+            </div>
+            <div class="eval-overlay" id="flEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="flEvalSpeedWrap" style="display:none;">
+              מהירות בדיקה: <b id="flEvalSpeedVal">13.0</b> צעדים/שנייה
+              <input type="range" id="flEvalSpeedSlider" min="1" max="100" value="50">
+            </label>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="flBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="flBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="flFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">רמת קושי
+                <select id="flDifficulty">
+                  <option value="easy">קל (פער רחב)</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="hard">קשה (פער צר ומהיר)</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="flBtnNewGame">🎲 סיבוב חדש</button>
+            </div>
+            <div class="toggle-row"><span>הצג נתיב תנועת ציפור אחרון</span><input type="checkbox" id="flChkTrail" checked></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="flAlphaVal">0.15</b></div>
+              <input type="range" id="flAlphaSlider" min="1" max="100" value="15">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="flGammaVal">0.95</b></div>
+              <input type="range" id="flGammaSlider" min="1" max="99" value="95">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="flDecayVal">0.990</b></div>
+              <input type="range" id="flDecaySlider" min="900" max="999" value="990">
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        הציפור נופלת כל הזמן בהשפעת כוח כבידה, ובכל צעד יכולה "לקפוץ" (דחיפה כלפי מעלה) או לא לעשות כלום. צינורות עם פער נעים מימין לשמאל בקצב קבוע; מעבר דרך הפער נותן תגמול ונחשב הצלחה, ופגיעה בצינור או ברצפה/תקרה מסיימת את האפיזודה בעונש. הסוכן "רואה" מצב מצומצם: גובה הציפור, מהירותה האנכית, המרחק לצינור הבא וההפרש בין גובה הציפור למרכז הפער. רמת הקושי קובעת את רוחב הפער ואת מהירות הצינורות.
       </p>
     </div>
   </div>
@@ -726,11 +814,29 @@
     reader.onerror = onError;
     reader.readAsText(file);
   }
+  // Runs stepFn() repeatedly until the time budget is used up — adapts automatically
+  // to each game's per-step cost instead of guessing a fixed step count, so training
+  // always uses the full available frame time.
+  function runTrainingBudget(stepFn, budgetMs){
+    const start = performance.now();
+    let count = 0;
+    while(performance.now() - start < budgetMs){
+      stepFn();
+      count++;
+      if(count > 300000) break; // safety net, not a normal limit
+    }
+    return count;
+  }
+  // Maps an eval-speed slider (1..100) to steps/sec (slow..moderately fast, never blazing)
+  // and the resulting frame interval at ~60fps.
+  function evalStepsPerSec(sliderVal){
+    return 1 + (sliderVal-1)/99 * 24; // 1 .. 25 steps/sec
+  }
 
   // =====================================================================
   // Shared mode switching
   // =====================================================================
-  let currentMode = null; // 'maze' | 'racepark' | 'snake' | 'pong' | 'cartpole'
+  let currentMode = null; // 'maze' | 'racepark' | 'snake' | 'pong' | 'cartpole' | 'flappy'
   const modeSelect = document.getElementById('modeSelect');
   const appWrap = document.getElementById('appWrap');
   const mazeSection = document.getElementById('mazeSection');
@@ -738,6 +844,7 @@
   const snakeSection = document.getElementById('snakeSection');
   const pongSection = document.getElementById('pongSection');
   const cartpoleSection = document.getElementById('cartpoleSection');
+  const flappySection = document.getElementById('flappySection');
 
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -749,11 +856,13 @@
       snakeSection.style.display = currentMode==='snake' ? 'block' : 'none';
       pongSection.style.display = currentMode==='pong' ? 'block' : 'none';
       cartpoleSection.style.display = currentMode==='cartpole' ? 'block' : 'none';
+      flappySection.style.display = currentMode==='flappy' ? 'block' : 'none';
       if(currentMode==='maze') MazeApp.ensureStarted();
       if(currentMode==='racepark') RaceParkApp.ensureStarted();
       if(currentMode==='snake') SnakeApp.ensureStarted();
       if(currentMode==='pong') PongApp.ensureStarted();
       if(currentMode==='cartpole') CartPoleApp.ensureStarted();
+      if(currentMode==='flappy') FlappyApp.ensureStarted();
     });
   });
   document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
@@ -781,12 +890,12 @@
     let epsilon = 1.0;
     const EPS_MIN = 0.05;
     let EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.95;
-    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
     let maxStepsPerEpisode = rows*cols*3;
     let bestSteps = null, goalsReached = 0;
     let successHistory = [], stepsHistory = [];
-    let isTraining = false, stepsPerFrame = 10;
-    let turboMode = false, frameCounter = 0;
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
     let showHeatmap = true, showTrail = true, showPolicy = true;
     let wallPenalty = -5, braidProb = 0.12;
     let itemCount = 0;
@@ -832,12 +941,12 @@
     const btnNewMaze = document.getElementById('mzBtnNewMaze');
     const mazeSizeSel = document.getElementById('mzMazeSize');
     const difficultySel = document.getElementById('mzDifficulty');
-    const speedSlider = document.getElementById('mzSpeedSlider');
-    const speedVal = document.getElementById('mzSpeedVal');
     const chkHeatmap = document.getElementById('mzChkHeatmap');
     const chkPolicy = document.getElementById('mzChkPolicy');
     const chkTrail = document.getElementById('mzChkTrail');
-    const chkTurbo = document.getElementById('mzChkTurbo');
+    const evalSpeedWrap = document.getElementById('mzEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('mzEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('mzEvalSpeedVal');
     const itemCountSel = document.getElementById('mzItemCount');
     const itemLegend = document.getElementById('mzItemLegend');
     const statItemsWrap = document.getElementById('mzStatItemsWrap');
@@ -1186,11 +1295,15 @@
 
     function frame(){
       if(currentMode==='maze'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
         frameCounter++;
-        if(!turboMode || !isTraining || frameCounter % 15 === 0){
-          drawMaze();
-          drawChart();
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) learnStep();
+          drawMaze(); drawChart();
+        } else if(isTraining){
+          runTrainingBudget(learnStep, 14);
+          if(frameCounter % 10 === 0){ drawMaze(); drawChart(); }
+        } else {
+          drawMaze(); drawChart();
         }
         updateStats();
       }
@@ -1284,33 +1397,36 @@
     mazeSizeSel.addEventListener('change', newMaze);
     difficultySel.addEventListener('change', newMaze);
     itemCountSel.addEventListener('change', newMaze);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
     chkHeatmap.addEventListener('change', ()=>{ showHeatmap = chkHeatmap.checked; });
     chkPolicy.addEventListener('change', ()=>{ showPolicy = chkPolicy.checked; });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
-    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
     alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
     gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
     decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
 
     btnEval.addEventListener('click', ()=>{
       evalMode = !evalMode;
       evalOverlay.classList.add('show');
       setTimeout(()=>evalOverlay.classList.remove('show'), 700);
       if(evalMode){
-        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
-        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
         btnToggleTrain.textContent = '⏸ עצור אימון';
         btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
       } else {
         epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
-        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
-        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
         isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
         btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
         btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
       }
@@ -1337,11 +1453,9 @@
     function ensureStarted(){
       if(started) return;
       started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
       showHeatmap = chkHeatmap.checked;
       showPolicy = chkPolicy.checked;
       showTrail = chkTrail.checked;
-      turboMode = chkTurbo.checked;
       const saved = loadGameState('maze');
       const restored = (saved && saved.maze) ? restoreFromSaved(saved) : false;
       if(restored){
@@ -1384,6 +1498,9 @@
     const btnResetQ = document.getElementById('rpBtnResetQ');
     const btnEval = document.getElementById('rpBtnEval');
     const evalOverlay = document.getElementById('rpEvalOverlay');
+    const evalSpeedWrap = document.getElementById('rpEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('rpEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('rpEvalSpeedVal');
     const btnExport = document.getElementById('rpBtnExport');
     const btnImport = document.getElementById('rpBtnImport');
     const fileImport = document.getElementById('rpFileImport');
@@ -1396,22 +1513,19 @@
     const btnNewRound = document.getElementById('rpBtnNewRound');
     const sizeSel = document.getElementById('rpSize');
     const difficultySel = document.getElementById('rpDifficulty');
-    const speedSlider = document.getElementById('rpSpeedSlider');
-    const speedVal = document.getElementById('rpSpeedVal');
     const chkSensors = document.getElementById('rpChkSensors');
     const chkTrail = document.getElementById('rpChkTrail');
-    const chkTurbo = document.getElementById('rpChkTurbo');
     const chkPolicy = document.getElementById('rpChkPolicy');
     const chkHud = document.getElementById('rpChkHud');
 
     // ---- shared training controls ----
-    let isTraining = false, stepsPerFrame = 10;
-    let turboMode = false, frameCounter = 0;
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
     let showSensors = true, showTrail = true, showHud = true, showPolicy = true;
     let epsilon = 1.0;
     const EPS_MIN = 0.01;
     let EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
-    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
 
     // ---- round bookkeeping (a "round" = one full lap attempt + one park attempt) ----
     let phase = 'race'; // 'race' | 'park'
@@ -2057,13 +2171,19 @@
 
     function frame(){
       if(currentMode==='racepark'){
-        if(isTraining){
-          for(let i=0;i<stepsPerFrame;i++){
-            if(phase==='race') raceLearnStep(); else parkLearnStep();
-          }
-        }
         frameCounter++;
-        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+        const doStep = ()=>{ if(phase==='race') raceLearnStep(); else parkLearnStep(); };
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) doStep();
+          if(phase==='race') drawRace(); else drawLot();
+          drawChart();
+        } else if(isTraining){
+          runTrainingBudget(doStep, 14);
+          if(frameCounter % 10 === 0){
+            if(phase==='race') drawRace(); else drawLot();
+            drawChart();
+          }
+        } else {
           if(phase==='race') drawRace(); else drawLot();
           drawChart();
         }
@@ -2156,13 +2276,8 @@
     btnNewRound.addEventListener('click', newRound);
     sizeSel.addEventListener('change', newRound);
     difficultySel.addEventListener('change', newRound);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
     chkSensors.addEventListener('change', ()=>{ showSensors = chkSensors.checked; });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail){ raceTrail=[]; parkTrail=[]; } });
-    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
     chkPolicy.addEventListener('change', ()=>{ showPolicy = chkPolicy.checked; });
     chkHud.addEventListener('change', ()=>{ showHud = chkHud.checked; });
 
@@ -2170,20 +2285,28 @@
     gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
     decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
 
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
+
     btnEval.addEventListener('click', ()=>{
       evalMode = !evalMode;
       evalOverlay.classList.add('show');
       setTimeout(()=>evalOverlay.classList.remove('show'), 700);
       if(evalMode){
-        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
-        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
         btnToggleTrain.textContent = '⏸ עצור אימון';
         btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
       } else {
         epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
-        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
-        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
         isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
         btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
         btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
       }
@@ -2228,10 +2351,8 @@
     function ensureStarted(){
       if(started) return;
       started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
       showSensors = chkSensors.checked;
       showTrail = chkTrail.checked;
-      turboMode = chkTurbo.checked;
       showPolicy = chkPolicy.checked;
       showHud = chkHud.checked;
       const saved = loadGameState('racepark');
@@ -2267,12 +2388,12 @@
     let epsilon = 1.0;
     const EPS_MIN = 0.01;
     let EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
-    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
     let maxStepsPerEpisode = 400;
     let bestLen = 1, foodEaten = 0;
     let scoreHistory = [], lenHistory = [];
-    let isTraining = false, stepsPerFrame = 10;
-    let turboMode = false, frameCounter = 0;
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
     let showTrail = true;
 
     const DIFF = {
@@ -2305,6 +2426,9 @@
     const btnResetQ = document.getElementById('snBtnResetQ');
     const btnEval = document.getElementById('snBtnEval');
     const evalOverlay = document.getElementById('snEvalOverlay');
+    const evalSpeedWrap = document.getElementById('snEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('snEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('snEvalSpeedVal');
     const btnExport = document.getElementById('snBtnExport');
     const btnImport = document.getElementById('snBtnImport');
     const fileImport = document.getElementById('snFileImport');
@@ -2318,10 +2442,7 @@
     const btnNewGame = document.getElementById('snBtnNewGame');
     const boardSizeSel = document.getElementById('snBoardSize');
     const difficultySel = document.getElementById('snDifficulty');
-    const speedSlider = document.getElementById('snSpeedSlider');
-    const speedVal = document.getElementById('snSpeedVal');
     const chkTrail = document.getElementById('snChkTrail');
-    const chkTurbo = document.getElementById('snChkTurbo');
     const chkWrap = document.getElementById('snChkWrap');
 
     function cellFree(r,c, excludeTail){
@@ -2596,11 +2717,15 @@
 
     function frame(){
       if(currentMode==='snake'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
         frameCounter++;
-        if(!turboMode || !isTraining || frameCounter % 15 === 0){
-          drawSnake();
-          drawChart();
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) learnStep();
+          drawSnake(); drawChart();
+        } else if(isTraining){
+          runTrainingBudget(learnStep, 14);
+          if(frameCounter % 10 === 0){ drawSnake(); drawChart(); }
+        } else {
+          drawSnake(); drawChart();
         }
         updateStats();
       }
@@ -2652,32 +2777,35 @@
     btnNewGame.addEventListener('click', newGame);
     boardSizeSel.addEventListener('change', newGame);
     difficultySel.addEventListener('change', newGame);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
-    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
     chkWrap.addEventListener('change', ()=>{ wrapMode = chkWrap.checked; resetLearning(); });
 
     alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
     gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
     decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
 
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
+
     btnEval.addEventListener('click', ()=>{
       evalMode = !evalMode;
       evalOverlay.classList.add('show');
       setTimeout(()=>evalOverlay.classList.remove('show'), 700);
       if(evalMode){
-        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
-        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
         btnToggleTrain.textContent = '⏸ עצור אימון';
         btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
       } else {
         epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
-        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
-        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
         isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
         btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
         btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
       }
@@ -2722,9 +2850,7 @@
     function ensureStarted(){
       if(started) return;
       started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
-      turboMode = chkTurbo.checked;
       wrapMode = chkWrap.checked;
       const saved = loadGameState('snake');
       if(!saved || !applySaved(saved)){
@@ -2757,12 +2883,12 @@
     let epsilon = 1.0;
     const EPS_MIN = 0.05;
     let EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.9;
-    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
     let maxStepsPerEpisode = 2000;
     let bestRally = 0, totalHits = 0;
     let rallyHistory = [], chartHistory = [];
-    let isTraining = false, stepsPerFrame = 10;
-    let turboMode = false, frameCounter = 0;
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
     let showTrail = true;
 
     let paddleSizeKey = 'medium';
@@ -2794,6 +2920,9 @@
     const btnResetQ = document.getElementById('pgBtnResetQ');
     const btnEval = document.getElementById('pgBtnEval');
     const evalOverlay = document.getElementById('pgEvalOverlay');
+    const evalSpeedWrap = document.getElementById('pgEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('pgEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('pgEvalSpeedVal');
     const btnExport = document.getElementById('pgBtnExport');
     const btnImport = document.getElementById('pgBtnImport');
     const fileImport = document.getElementById('pgFileImport');
@@ -2807,10 +2936,7 @@
     const btnNewGame = document.getElementById('pgBtnNewGame');
     const paddleSizeSel = document.getElementById('pgPaddleSize');
     const difficultySel = document.getElementById('pgDifficulty');
-    const speedSlider = document.getElementById('pgSpeedSlider');
-    const speedVal = document.getElementById('pgSpeedVal');
     const chkTrail = document.getElementById('pgChkTrail');
-    const chkTurbo = document.getElementById('pgChkTurbo');
 
     function bucket(v, lo, hi, n){
       const t = Math.max(0, Math.min(1, (v-lo)/(hi-lo)));
@@ -2992,11 +3118,15 @@
 
     function frame(){
       if(currentMode==='pong'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
         frameCounter++;
-        if(!turboMode || !isTraining || frameCounter % 15 === 0){
-          draw();
-          drawChart();
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) learnStep();
+          draw(); drawChart();
+        } else if(isTraining){
+          runTrainingBudget(learnStep, 14);
+          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+        } else {
+          draw(); drawChart();
         }
         updateStats();
       }
@@ -3044,31 +3174,34 @@
     btnNewGame.addEventListener('click', newGame);
     paddleSizeSel.addEventListener('change', newGame);
     difficultySel.addEventListener('change', newGame);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
-    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
     alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
     gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
     decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
 
     btnEval.addEventListener('click', ()=>{
       evalMode = !evalMode;
       evalOverlay.classList.add('show');
       setTimeout(()=>evalOverlay.classList.remove('show'), 700);
       if(evalMode){
-        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
-        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
         btnToggleTrain.textContent = '⏸ עצור אימון';
         btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
       } else {
         epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
-        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
-        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
         isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
         btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
         btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
       }
@@ -3112,9 +3245,7 @@
     function ensureStarted(){
       if(started) return;
       started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
-      turboMode = chkTurbo.checked;
       const saved = loadGameState('pong');
       if(!saved || !applySaved(saved)){
         newGame();
@@ -3147,13 +3278,13 @@
     let epsilon = 1.0;
     const EPS_MIN = 0.02;
     let EPS_DECAY = 0.995, ALPHA = 0.2, GAMMA = 0.98;
-    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
     const SOLVED_STEPS = 300;
     let maxStepsPerEpisode = Infinity; // no artificial ceiling — an episode only ends when the pole actually falls or the cart runs off track
     let bestSteps = 0, solvedCount = 0;
     let stepsHistory = [], chartHistory = [];
-    let isTraining = false, stepsPerFrame = 10;
-    let turboMode = false, frameCounter = 0;
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
     let showTrail = true;
     let difficultyKey = 'medium';
     const DIFF = { easy:{xLimit:3.2}, medium:{xLimit:2.4}, hard:{xLimit:1.6} };
@@ -3179,6 +3310,9 @@
     const btnResetQ = document.getElementById('cpBtnResetQ');
     const btnEval = document.getElementById('cpBtnEval');
     const evalOverlay = document.getElementById('cpEvalOverlay');
+    const evalSpeedWrap = document.getElementById('cpEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('cpEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('cpEvalSpeedVal');
     const btnExport = document.getElementById('cpBtnExport');
     const btnImport = document.getElementById('cpBtnImport');
     const fileImport = document.getElementById('cpFileImport');
@@ -3190,10 +3324,7 @@
     const decayVal = document.getElementById('cpDecayVal');
     const btnNewGame = document.getElementById('cpBtnNewGame');
     const difficultySel = document.getElementById('cpDifficulty');
-    const speedSlider = document.getElementById('cpSpeedSlider');
-    const speedVal = document.getElementById('cpSpeedVal');
     const chkTrail = document.getElementById('cpChkTrail');
-    const chkTurbo = document.getElementById('cpChkTurbo');
 
     function bucketOf(v, bounds, n){
       const t = Math.max(0, Math.min(1, (v-bounds[0])/(bounds[1]-bounds[0])));
@@ -3362,11 +3493,15 @@
 
     function frame(){
       if(currentMode==='cartpole'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
         frameCounter++;
-        if(!turboMode || !isTraining || frameCounter % 15 === 0){
-          draw();
-          drawChart();
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) learnStep();
+          draw(); drawChart();
+        } else if(isTraining){
+          runTrainingBudget(learnStep, 14);
+          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+        } else {
+          draw(); drawChart();
         }
         updateStats();
       }
@@ -3412,31 +3547,34 @@
     btnResetQ.addEventListener('click', resetLearning);
     btnNewGame.addEventListener('click', newGame);
     difficultySel.addEventListener('change', newGame);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trailX=[]; });
-    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
     alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
     gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
     decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
 
     btnEval.addEventListener('click', ()=>{
       evalMode = !evalMode;
       evalOverlay.classList.add('show');
       setTimeout(()=>evalOverlay.classList.remove('show'), 700);
       if(evalMode){
-        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
-        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
         btnToggleTrain.textContent = '⏸ עצור אימון';
         btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
       } else {
         epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
-        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
-        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
         isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
         btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
         btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
       }
@@ -3479,10 +3617,395 @@
     function ensureStarted(){
       if(started) return;
       started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
-      turboMode = chkTurbo.checked;
       const saved = loadGameState('cartpole');
+      if(!saved || !applySaved(saved)){
+        newGame();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // FLAPPY BIRD APP
+  // =====================================================================
+  const FlappyApp = (function(){
+    let started = false;
+    const W = 360, H = 520;
+    const BIRD_X = 90, BIRD_R = 12;
+    const GRAVITY = 0.35;
+    const FLAP_VY = -6.5;
+    const PIPE_W = 50, PIPE_SPACING = 220;
+
+    let bird = {y:H/2, vy:0};
+    let pipes = []; // [{x, gapY}]
+    let trail = [];
+
+    let Q = {};
+    let episode = 0;
+    let stepsInEpisode = 0;
+    let score = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.02;
+    let EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.95;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
+    let maxStepsPerEpisode = 20000;
+    let bestScore = 0, totalPipes = 0;
+    let scoreHistory = [], chartHistory = [];
+    let isTraining = false;
+    let evalFrameInterval = 10, frameCounter = 0;
+    let showTrail = true;
+    let difficultyKey = 'medium';
+    let gapH = 140, pipeSpeed = 2.8;
+    const DIFF = {
+      easy:   { gap:180, speed:2.2 },
+      medium: { gap:140, speed:2.8 },
+      hard:   { gap:105, speed:3.6 }
+    };
+
+    const N_Y=8, N_V=6, N_DX=5, N_DY=8;
+
+    const canvas = document.getElementById('flCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('flChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('flStatEpisode');
+    const statScore = document.getElementById('flStatScore');
+    const statEpsilon = document.getElementById('flStatEpsilon');
+    const statBest = document.getElementById('flStatBest');
+    const statAvg = document.getElementById('flStatAvg');
+    const statGoals = document.getElementById('flStatGoals');
+
+    const btnToggleTrain = document.getElementById('flBtnToggleTrain');
+    const btnResetQ = document.getElementById('flBtnResetQ');
+    const btnEval = document.getElementById('flBtnEval');
+    const evalOverlay = document.getElementById('flEvalOverlay');
+    const evalSpeedWrap = document.getElementById('flEvalSpeedWrap');
+    const evalSpeedSlider = document.getElementById('flEvalSpeedSlider');
+    const evalSpeedVal = document.getElementById('flEvalSpeedVal');
+    const btnExport = document.getElementById('flBtnExport');
+    const btnImport = document.getElementById('flBtnImport');
+    const fileImport = document.getElementById('flFileImport');
+    const confFill = document.getElementById('flConfFill');
+    const alphaSlider = document.getElementById('flAlphaSlider');
+    const alphaVal = document.getElementById('flAlphaVal');
+    const gammaSlider = document.getElementById('flGammaSlider');
+    const gammaVal = document.getElementById('flGammaVal');
+    const decaySlider = document.getElementById('flDecaySlider');
+    const decayVal = document.getElementById('flDecayVal');
+    const btnNewGame = document.getElementById('flBtnNewGame');
+    const difficultySel = document.getElementById('flDifficulty');
+    const chkTrail = document.getElementById('flChkTrail');
+
+    function bucket(v, lo, hi, n){
+      const t = Math.max(0, Math.min(1, (v-lo)/(hi-lo)));
+      return Math.min(n-1, Math.floor(t*n));
+    }
+
+    function sizeCanvas(){
+      canvas.width = W; canvas.height = H;
+    }
+
+    function nextPipe(){
+      for(const p of pipes) if(p.x + PIPE_W >= BIRD_X - BIRD_R) return p;
+      return pipes[pipes.length-1] || {x:W, gapY:H/2};
+    }
+
+    function getState(){
+      const p = nextPipe();
+      const by = bucket(bird.y, 0, H, N_Y);
+      const bv = bucket(bird.vy, -10, 10, N_V);
+      const dx = bucket(p.x - BIRD_X, 0, W, N_DX);
+      const dy = bucket(p.gapY - bird.y, -H, H, N_DY);
+      return by+','+bv+','+dx+','+dy;
+    }
+
+    function getQ(state){
+      if(!Q[state]) Q[state] = [0,0]; // 0=no-op, 1=flap
+      return Q[state];
+    }
+
+    function chooseAction(state){
+      if(Math.random() < epsilon) return Math.random()<0.5 ? 0 : 1;
+      const q = getQ(state);
+      return q[1] > q[0] ? 1 : 0;
+    }
+
+    function spawnPipeIfNeeded(){
+      const last = pipes[pipes.length-1];
+      if(!last || last.x < W - PIPE_SPACING){
+        const margin = gapH/2 + 30;
+        const gapY = margin + Math.random()*(H - margin*2);
+        pipes.push({x:W, gapY, passed:false});
+      }
+    }
+
+    function doStep(actionIdx){
+      if(actionIdx===1) bird.vy = FLAP_VY;
+      bird.vy += GRAVITY;
+      bird.y += bird.vy;
+
+      pipes.forEach(p=> p.x -= pipeSpeed);
+      while(pipes.length && pipes[0].x + PIPE_W < 0) pipes.shift();
+      spawnPipeIfNeeded();
+
+      let reward = 0.1, done = false;
+
+      if(bird.y - BIRD_R < 0 || bird.y + BIRD_R > H){
+        reward = -10; done = true;
+        return {reward, done};
+      }
+
+      for(const p of pipes){
+        const withinX = BIRD_X + BIRD_R > p.x && BIRD_X - BIRD_R < p.x + PIPE_W;
+        if(withinX){
+          const gapTop = p.gapY - gapH/2, gapBottom = p.gapY + gapH/2;
+          if(bird.y - BIRD_R < gapTop || bird.y + BIRD_R > gapBottom){
+            reward = -10; done = true;
+            return {reward, done};
+          }
+        }
+        if(!p.passed && p.x + PIPE_W < BIRD_X - BIRD_R){
+          p.passed = true;
+          score++;
+          totalPipes++;
+          if(score > bestScore) bestScore = score; // live update, not just at episode end
+          reward = 5;
+        }
+      }
+
+      return {reward, done};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const {reward, done} = doStep(action);
+      const state1 = done ? null : getState();
+      const nextMax = done ? 0 : Math.max(...getQ(state1));
+      if(!evalMode) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      stepsInEpisode++;
+      if(showTrail){ trail.push({x:BIRD_X, y:bird.y}); if(trail.length>60) trail.shift(); }
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
+    }
+
+    function finishEpisode(){
+      episode++;
+      scoreHistory.push(score);
+      if(scoreHistory.length>50) scoreHistory.shift();
+      chartHistory.push(score);
+      if(chartHistory.length>150) chartHistory.shift();
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      stepsInEpisode = 0; score = 0;
+      resetRound();
+    }
+
+    function resetRound(){
+      bird = {y:H/2, vy:0};
+      pipes = [];
+      trail = [];
+      spawnPipeIfNeeded();
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = getCss('--bg2');
+      ctx.fillRect(0,0,W,H);
+
+      ctx.fillStyle = getCss('--wall');
+      pipes.forEach(p=>{
+        const gapTop = p.gapY - gapH/2, gapBottom = p.gapY + gapH/2;
+        ctx.fillRect(p.x, 0, PIPE_W, gapTop);
+        ctx.fillRect(p.x, gapBottom, PIPE_W, H-gapBottom);
+      });
+
+      if(showTrail && trail.length>1){
+        ctx.strokeStyle = 'rgba(255,210,63,0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(trail[0].x, trail[0].y);
+        trail.forEach(p=>ctx.lineTo(p.x,p.y));
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.arc(BIRD_X, bird.y, BIRD_R, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawChart(){
+      chartCanvas.width = chartCanvas.clientWidth * devicePixelRatio;
+      chartCanvas.height = 70 * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCtx.clearRect(0,0,cw,ch);
+      if(chartHistory.length<2) return;
+      const mx = Math.max(...chartHistory), mn = Math.min(...chartHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      chartHistory.forEach((v,i)=>{
+        const x = (i/(chartHistory.length-1)) * cw;
+        const y = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateConfidence(){
+      const q = getQ(getState());
+      const spread = Math.max(...q) - Math.min(...q);
+      const pct = Math.max(0, Math.min(100, Math.round((spread/6)*100)));
+      confFill.style.width = pct+'%';
+      confFill.style.background = 'hsl('+Math.round(pct*1.2)+',70%,55%)';
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statScore.textContent = score;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestScore;
+      const avg = scoreHistory.length ? (scoreHistory.reduce((a,b)=>a+b,0)/scoreHistory.length).toFixed(1) : '0';
+      statAvg.textContent = avg;
+      statGoals.textContent = totalPipes;
+      updateConfidence();
+    }
+
+    function frame(){
+      if(currentMode==='flappy'){
+        frameCounter++;
+        if(isTraining && evalMode){
+          if(frameCounter % evalFrameInterval === 0) learnStep();
+          draw(); drawChart();
+        } else if(isTraining){
+          runTrainingBudget(learnStep, 14);
+          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+        } else {
+          draw(); drawChart();
+        }
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function serializeFlappy(){
+      return {
+        difficultyKey,
+        Q, episode, epsilon, bestScore, totalPipes, scoreHistory, chartHistory,
+        ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('flappy', serializeFlappy()); }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
+    function newGame(){
+      clearGameState('flappy');
+      difficultyKey = difficultySel.value;
+      const diff = DIFF[difficultyKey] || DIFF.medium;
+      gapH = diff.gap; pipeSpeed = diff.speed;
+      Q = {};
+      episode = 0; stepsInEpisode = 0; score = 0; epsilon = 1.0;
+      bestScore = 0; totalPipes = 0;
+      scoreHistory = []; chartHistory = [];
+      sizeCanvas();
+      resetRound();
+    }
+
+    function resetLearning(){
+      Q = {};
+      episode = 0; stepsInEpisode = 0; score = 0; epsilon = 1.0;
+      bestScore = 0; totalPipes = 0;
+      scoreHistory = []; chartHistory = [];
+      resetRound();
+      persist();
+    }
+
+    function applySaved(saved){
+      const validQ = saved && typeof saved.Q==='object' && saved.Q!==null;
+      if(!validQ) return false;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      newGame(); // fresh pipes; flappy's state is relative-to-pipe so saved Q still applies
+      Q = saved.Q || {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestScore = saved.bestScore||0; totalPipes = saved.totalPipes||0;
+      scoreHistory = Array.isArray(saved.scoreHistory) ? saved.scoreHistory : [];
+      chartHistory = Array.isArray(saved.chartHistory) ? saved.chartHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+      gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+      decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      return true;
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewGame.addEventListener('click', newGame);
+    difficultySel.addEventListener('change', newGame);
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    function updateEvalSpeed(){
+      const sps = evalStepsPerSec(parseInt(evalSpeedSlider.value,10));
+      evalFrameInterval = Math.max(1, Math.round(60/sps));
+      evalSpeedVal.textContent = sps.toFixed(1);
+    }
+    evalSpeedSlider.addEventListener('input', updateEvalSpeed);
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedTraining = isTraining;
+        epsilon = 0; isTraining = true;
+        updateEvalSpeed();
+        evalSpeedWrap.style.display = 'flex';
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        isTraining = evalSavedTraining;
+        evalSpeedWrap.style.display = 'none';
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-flappy-save.json', serializeFlappy());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = applySaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק פלאפי בירד.'); return; }
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      showTrail = chkTrail.checked;
+      const saved = loadGameState('flappy');
       if(!saved || !applySaved(saved)){
         newGame();
       }

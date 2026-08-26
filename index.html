@@ -26,6 +26,9 @@
     --item:#ffd23f;
     --road:#2b2f45;
     --curb:#ff5c7a;
+    --snake:#3ddc97;
+    --snake-head:#ffd23f;
+    --food:#ff5c7a;
   }
   *{box-sizing:border-box;}
   body{
@@ -142,6 +145,11 @@
         <span class="emoji">🅿️</span>
         <span class="title">חניה</span>
         <span class="desc">סוכן AI לומד לחנות רכב במקום צר, כולל נסיעה לאחור, בלי לפגוע ברכבים שכנים</span>
+      </button>
+      <button class="mode-card" data-mode="snake">
+        <span class="emoji">🐍</span>
+        <span class="title">נחש</span>
+        <span class="desc">סוכן AI לומד לשלוט בנחש שגדל, לאסוף אוכל ולהימנע מפגיעה בעצמו או בקיר</span>
       </button>
     </div>
   </div>
@@ -383,6 +391,78 @@
         הרכב "רואה" 5 חיישני מרחק (כולל אחורה), ויודע גם את המרחק והזווית שלו יחסית למקום החניה. הוא בוחר בכל צעד בין האצה קדימה/פנייה/נסיעה לאחור/בלימה. תגמול על התקרבות ויישור נכון למקום, 50- על פגיעה ברכב שכן או בקיר, +200 על חניה מוצלחת (בתוך המקום, כמעט ללא תנועה, עם כיוון נכון).
       </p>
     </div>
+
+    <!-- ================= SNAKE SECTION ================= -->
+    <div id="snakeSection" style="display:none;">
+      <h1>🐍 Mazei — נחש</h1>
+      <p class="subtitle">הנחש לומד לאסוף אוכל ולגדול, בלי לפגוע בעצמו או בקיר</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="snakeCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--snake-head)"></span> ראש</span>
+            <span><span class="dot" style="background:var(--snake)"></span> גוף</span>
+            <span><span class="dot" style="background:var(--food)"></span> אוכל</span>
+          </div>
+          <div class="heat-legend">
+            <span>0 סיבובים בין אפיזודות</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#a06cff);"></div><span>מגמת ניקוד</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="snStatEpisode">0</div></div>
+              <div class="stat"><div class="label">אורך נוכחי</div><div class="value" id="snStatLen">1</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="snStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא אורך</div><div class="value" id="snStatBest">1</div></div>
+              <div class="stat"><div class="label">ממוצע ניקוד (50 אחרונות)</div><div class="value" id="snStatAvg">0</div></div>
+              <div class="stat"><div class="label">סה"כ אוכל שנאסף</div><div class="value" id="snStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">אורך נחש לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
+            <canvas id="snChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="snBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="snBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">גודל לוח
+                <select id="snBoardSize">
+                  <option value="10">קטן 10×10</option>
+                  <option value="14" selected>בינוני 14×14</option>
+                  <option value="18">גדול 18×18</option>
+                  <option value="24">ענק 24×24</option>
+                </select>
+              </label>
+              <label class="field-inline">רמת קושי
+                <select id="snDifficulty">
+                  <option value="easy">קל (בלי קירות)</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="hard">קשה (עם קירות)</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="snBtnNewGame">🎲 לוח חדש</button>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="snSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="snSpeedSlider" min="1" max="300" value="10">
+            </label>
+            <div class="toggle-row"><span>הצג נתיב תנועה אחרון</span><input type="checkbox" id="snChkTrail" checked></div>
+            <div class="toggle-row"><span>מעבר דרך קירות (Wrap)</span><input type="checkbox" id="snChkWrap"></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        הנחש לומד ממצב מצומצם: סכנת התנגשות ישר/שמאל/ימין ביחס לכיוון תנועתו הנוכחי, כיוון התנועה עצמו, וכיוון האוכל ביחסית אליו — כך מרחב המצבים נשאר קטן וניתן ללמידה מהירה. כל צעד קדימה נותן עונש קל, התקרבות לאוכל נותנת תגמול קטן, אכילה נותנת תגמול גבוה והנחש גדל, ופגיעה בעצמו או בקיר (אלא אם "מעבר דרך קירות" מסומן) מסיימת את האפיזודה בעונש. רמת הקושי קובעת אם יש קירות פנימיים קבועים על הלוח.
+      </p>
+    </div>
   </div>
 
 <script>
@@ -392,12 +472,13 @@
   // =====================================================================
   // Shared mode switching
   // =====================================================================
-  let currentMode = null; // 'maze' | 'race' | 'park'
+  let currentMode = null; // 'maze' | 'race' | 'park' | 'snake'
   const modeSelect = document.getElementById('modeSelect');
   const appWrap = document.getElementById('appWrap');
   const mazeSection = document.getElementById('mazeSection');
   const raceSection = document.getElementById('raceSection');
   const parkSection = document.getElementById('parkSection');
+  const snakeSection = document.getElementById('snakeSection');
 
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -407,9 +488,11 @@
       mazeSection.style.display = currentMode==='maze' ? 'block' : 'none';
       raceSection.style.display = currentMode==='race' ? 'block' : 'none';
       parkSection.style.display = currentMode==='park' ? 'block' : 'none';
+      snakeSection.style.display = currentMode==='snake' ? 'block' : 'none';
       if(currentMode==='maze') MazeApp.ensureStarted();
       if(currentMode==='race') RaceApp.ensureStarted();
       if(currentMode==='park') ParkApp.ensureStarted();
+      if(currentMode==='snake') SnakeApp.ensureStarted();
     });
   });
   document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
@@ -1784,6 +1867,385 @@
       showTrail = chkTrail.checked;
       showHud = chkHud.checked;
       newLot();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // SNAKE APP
+  // =====================================================================
+  const SnakeApp = (function(){
+    let started = false;
+    let cols = 14, rows = 14;
+    let cellPx = 30;
+    let walls = []; // [{r,c}] fixed interior obstacles (hard mode)
+    let wrapMode = false;
+
+    // snake state: array of {r,c}, index 0 = head
+    let snake = [];
+    let dir = 'E';         // current facing direction
+    let food = {r:0,c:0};
+    let trail = [];
+
+    let Q = {};
+    let episode = 0;
+    let stepsInEpisode = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
+    let maxStepsPerEpisode = 400;
+    let bestLen = 1, foodEaten = 0;
+    let scoreHistory = [], lenHistory = [];
+    let isTraining = false, stepsPerFrame = 10;
+    let showTrail = true;
+
+    const DIFF = {
+      easy:   { wallCount:0 },
+      medium: { wallCount:0 },
+      hard:   { wallCount:1 } // scaled by board size below
+    };
+    let difficultyKey = 'medium';
+
+    const DIRS4 = ['N','E','S','W'];
+    const DELTA = { N:[-1,0], E:[0,1], S:[1,0], W:[0,-1] };
+    const LEFT_OF  = { N:'W', W:'S', S:'E', E:'N' };
+    const RIGHT_OF = { N:'E', E:'S', S:'W', W:'N' };
+    // actions are relative to current heading: 0=straight, 1=turn right, 2=turn left
+    const ACTIONS = ['straight','right','left'];
+
+    const canvas = document.getElementById('snakeCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('snChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('snStatEpisode');
+    const statLen = document.getElementById('snStatLen');
+    const statEpsilon = document.getElementById('snStatEpsilon');
+    const statBest = document.getElementById('snStatBest');
+    const statAvg = document.getElementById('snStatAvg');
+    const statGoals = document.getElementById('snStatGoals');
+
+    const btnToggleTrain = document.getElementById('snBtnToggleTrain');
+    const btnResetQ = document.getElementById('snBtnResetQ');
+    const btnNewGame = document.getElementById('snBtnNewGame');
+    const boardSizeSel = document.getElementById('snBoardSize');
+    const difficultySel = document.getElementById('snDifficulty');
+    const speedSlider = document.getElementById('snSpeedSlider');
+    const speedVal = document.getElementById('snSpeedVal');
+    const chkTrail = document.getElementById('snChkTrail');
+    const chkWrap = document.getElementById('snChkWrap');
+
+    function cellFree(r,c, excludeTail){
+      if(!wrapMode && (r<0||r>=rows||c<0||c>=cols)) return false;
+      if(walls.some(w=>w.r===r&&w.c===c)) return false;
+      for(let i=0;i<snake.length;i++){
+        if(excludeTail && i===snake.length-1) continue;
+        if(snake[i].r===r && snake[i].c===c) return false;
+      }
+      return true;
+    }
+
+    function wrapCoord(r,c){
+      let nr=r, nc=c;
+      if(wrapMode){
+        nr = (r+rows)%rows;
+        nc = (c+cols)%cols;
+      }
+      return {r:nr,c:nc};
+    }
+
+    function placeFood(){
+      const free = [];
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        if(walls.some(w=>w.r===r&&w.c===c)) continue;
+        if(snake.some(s=>s.r===r&&s.c===c)) continue;
+        free.push({r,c});
+      }
+      if(free.length===0){ food = {r:-1,c:-1}; return; }
+      food = free[Math.floor(Math.random()*free.length)];
+    }
+
+    function buildWalls(){
+      walls = [];
+      const diff = DIFF[difficultyKey] || DIFF.medium;
+      if(diff.wallCount<=0) return;
+      const count = Math.round((rows+cols)/2 * diff.wallCount);
+      let guard = 0;
+      while(walls.length < count && guard < count*20){
+        guard++;
+        const r = 2+Math.floor(Math.random()*(rows-4));
+        const c = 2+Math.floor(Math.random()*(cols-4));
+        // keep clear zone around center-ish spawn
+        if(Math.abs(r-Math.floor(rows/2))<2 && Math.abs(c-Math.floor(cols/2))<2) continue;
+        if(walls.some(w=>w.r===r&&w.c===c)) continue;
+        walls.push({r,c});
+      }
+    }
+
+    // ---- compact state representation for Q-learning ----
+    function dangerAt(r,c){
+      return !cellFree(r,c, true) ? 1 : 0;
+    }
+    function getState(){
+      const head = snake[0];
+      const [dr,dc] = DELTA[dir];
+      const straight = wrapCoord(head.r+dr, head.c+dc);
+      const rightDir = RIGHT_OF[dir];
+      const [rdr,rdc] = DELTA[rightDir];
+      const right = wrapCoord(head.r+rdr, head.c+rdc);
+      const leftDir = LEFT_OF[dir];
+      const [ldr,ldc] = DELTA[leftDir];
+      const left = wrapCoord(head.r+ldr, head.c+ldc);
+
+      const dangerStraight = dangerAt(straight.r, straight.c);
+      const dangerRight = dangerAt(right.r, right.c);
+      const dangerLeft = dangerAt(left.r, left.c);
+
+      // food direction relative to heading: ahead/behind, left/right
+      let fr = food.r - head.r, fc = food.c - head.c;
+      if(wrapMode){
+        if(fr > rows/2) fr -= rows; if(fr < -rows/2) fr += rows;
+        if(fc > cols/2) fc -= cols; if(fc < -cols/2) fc += cols;
+      }
+      // rotate (fr,fc) into heading-relative frame: "forward" and "rightward" axes
+      let fwdAxis, rightAxis;
+      if(dir==='N'){ fwdAxis=-fr; rightAxis=fc; }
+      else if(dir==='S'){ fwdAxis=fr; rightAxis=-fc; }
+      else if(dir==='E'){ fwdAxis=fc; rightAxis=fr; }
+      else { fwdAxis=-fc; rightAxis=-fr; }
+      const foodFwd = fwdAxis>0 ? 2 : (fwdAxis<0 ? 0 : 1);       // 0 behind,1 same,2 ahead
+      const foodRight = rightAxis>0 ? 2 : (rightAxis<0 ? 0 : 1); // 0 left,1 same,2 right
+
+      return [dangerStraight,dangerRight,dangerLeft,foodFwd,foodRight].join(',');
+    }
+
+    function getQ(state){
+      if(!Q[state]) Q[state] = [0,0,0];
+      return Q[state];
+    }
+
+    function chooseAction(state){
+      if(Math.random() < epsilon) return Math.floor(Math.random()*3);
+      const q = getQ(state);
+      let best=0;
+      for(let i=1;i<3;i++) if(q[i] > q[best]) best = i;
+      return best;
+    }
+
+    function applyAction(actionIdx){
+      if(actionIdx===1) dir = RIGHT_OF[dir];
+      else if(actionIdx===2) dir = LEFT_OF[dir];
+      // 0 = straight, no change
+    }
+
+    function doStep(actionIdx){
+      const prevHead = snake[0];
+      const prevDist = Math.abs(prevHead.r-food.r)+Math.abs(prevHead.c-food.c);
+      applyAction(actionIdx);
+      const [dr,dc] = DELTA[dir];
+      let nr = prevHead.r+dr, nc = prevHead.c+dc;
+      let done=false, reward=-0.1;
+
+      if(wrapMode){
+        nr = (nr+rows)%rows; nc = (nc+cols)%cols;
+      }
+
+      const hitsWall = !wrapMode && (nr<0||nr>=rows||nc<0||nc>=cols);
+      const hitsObstacle = walls.some(w=>w.r===nr&&w.c===nc);
+      const willEat = food.r===nr && food.c===nc;
+      const hitsSelf = snake.some((s,i)=>{
+        if(i===snake.length-1 && !willEat) return false; // tail moves away unless we're growing
+        return s.r===nr && s.c===nc;
+      });
+
+      if(hitsWall || hitsObstacle || hitsSelf){
+        reward = -10;
+        done = true;
+        return {reward, done};
+      }
+
+      snake.unshift({r:nr,c:nc});
+      if(willEat){
+        reward = 10;
+        foodEaten++;
+        placeFood();
+        if(food.r===-1){ reward = 50; done = true; } // board full: full win
+      } else {
+        snake.pop();
+        const newDist = Math.abs(nr-food.r)+Math.abs(nc-food.c);
+        reward = newDist < prevDist ? 0.5 : -0.6; // shaped reward toward food
+      }
+      return {reward, done};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const {reward, done} = doStep(action);
+      const state1 = done ? null : getState();
+      const nextMax = done ? 0 : Math.max(...getQ(state1));
+      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      stepsInEpisode++;
+      if(showTrail) trail.push({r:snake[0].r,c:snake[0].c});
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
+    }
+
+    function finishEpisode(){
+      episode++;
+      const len = snake.length;
+      scoreHistory.push(len);
+      if(scoreHistory.length>50) scoreHistory.shift();
+      lenHistory.push(len);
+      if(lenHistory.length>150) lenHistory.shift();
+      if(len > bestLen) bestLen = len;
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      resetSnake();
+      stepsInEpisode = 0;
+      trail = [];
+    }
+
+    function resetSnake(){
+      const cr = Math.floor(rows/2), cc = Math.floor(cols/2);
+      snake = [{r:cr,c:cc}];
+      dir = DIRS4[Math.floor(Math.random()*4)];
+      placeFood();
+    }
+
+    function sizeCanvas(){
+      const maxDim = 560;
+      cellPx = Math.floor(maxDim / Math.max(rows,cols));
+      canvas.width = cellPx*cols;
+      canvas.height = cellPx*rows;
+    }
+
+    function drawSnake(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // grid background
+      ctx.fillStyle = getCss('--bg2');
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      walls.forEach(w=>{
+        ctx.fillStyle = getCss('--wall');
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(w.c*cellPx+1,w.r*cellPx+1,cellPx-2,cellPx-2,3) : ctx.rect(w.c*cellPx+1,w.r*cellPx+1,cellPx-2,cellPx-2);
+        ctx.fill();
+      });
+
+      if(showTrail && trail.length>1){
+        ctx.strokeStyle = 'rgba(61,220,151,0.35)';
+        ctx.lineWidth = Math.max(1,cellPx*0.1);
+        ctx.beginPath();
+        ctx.moveTo(trail[0].c*cellPx+cellPx*0.5, trail[0].r*cellPx+cellPx*0.5);
+        trail.forEach(p=>{ ctx.lineTo(p.c*cellPx+cellPx*0.5, p.r*cellPx+cellPx*0.5); });
+        ctx.stroke();
+      }
+
+      if(food.r>=0){
+        ctx.fillStyle = getCss('--food');
+        ctx.beginPath();
+        ctx.arc(food.c*cellPx+cellPx/2, food.r*cellPx+cellPx/2, cellPx*0.28, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      snake.forEach((s,i)=>{
+        ctx.fillStyle = i===0 ? getCss('--snake-head') : getCss('--snake');
+        ctx.beginPath();
+        const pad = i===0 ? cellPx*0.06 : cellPx*0.12;
+        ctx.roundRect ? ctx.roundRect(s.c*cellPx+pad, s.r*cellPx+pad, cellPx-2*pad, cellPx-2*pad, 4) : ctx.rect(s.c*cellPx+pad, s.r*cellPx+pad, cellPx-2*pad, cellPx-2*pad);
+        ctx.fill();
+      });
+    }
+
+    function drawChart(){
+      chartCanvas.width = chartCanvas.clientWidth * devicePixelRatio;
+      chartCanvas.height = 70 * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCtx.clearRect(0,0,cw,ch);
+      if(lenHistory.length<2) return;
+      const mx = Math.max(...lenHistory);
+      const mn = Math.min(...lenHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      lenHistory.forEach((v,i)=>{
+        const x = (i/(lenHistory.length-1)) * cw;
+        const y = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statLen.textContent = snake.length;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestLen;
+      const avg = scoreHistory.length ? (scoreHistory.reduce((a,b)=>a+b,0)/scoreHistory.length).toFixed(1) : '0';
+      statAvg.textContent = avg;
+      statGoals.textContent = foodEaten;
+    }
+
+    function frame(){
+      if(currentMode==='snake'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        drawSnake();
+        drawChart();
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newGame(){
+      cols = rows = parseInt(boardSizeSel.value, 10);
+      difficultyKey = difficultySel.value;
+      wrapMode = chkWrap.checked;
+      maxStepsPerEpisode = (rows*cols) * 3;
+      buildWalls();
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestLen = 1; foodEaten = 0;
+      scoreHistory = []; lenHistory = [];
+      resetSnake();
+      trail = [];
+      sizeCanvas();
+    }
+
+    function resetLearning(){
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestLen = 1; foodEaten = 0;
+      scoreHistory = []; lenHistory = [];
+      resetSnake();
+      trail = [];
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewGame.addEventListener('click', newGame);
+    boardSizeSel.addEventListener('change', newGame);
+    difficultySel.addEventListener('change', newGame);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkWrap.addEventListener('change', ()=>{ wrapMode = chkWrap.checked; resetLearning(); });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showTrail = chkTrail.checked;
+      wrapMode = chkWrap.checked;
+      newGame();
       requestAnimationFrame(frame);
     }
 

@@ -1079,6 +1079,20 @@
   }
   updateDisplaySpeedUI();
 
+  // דאבל-קליק על סרגל מהירות האימון/התצוגה — מעתיק אליו את הערך של הסרגל השני בדיוק
+  if(trainingSpeedSlider && displaySpeedSlider){
+    trainingSpeedSlider.addEventListener('dblclick', ()=>{
+      trainingSpeed = displaySpeed;
+      resetTrainingTiming();
+      updateTrainingSpeedUI();
+    });
+    displaySpeedSlider.addEventListener('dblclick', ()=>{
+      displaySpeed = trainingSpeed;
+      resetDisplayTiming();
+      updateDisplaySpeedUI();
+    });
+  }
+
   // =====================================================================
   // Shared mode switching
   // =====================================================================

@@ -2371,17 +2371,23 @@
     }
 
     // =========================== PHASE ORCHESTRATION ===========================
-    function setPhase(p){
-      phase = p;
-      if(suppressPhaseUI) return;
-      const isRace = phase==='race';
+    function applyPhaseUI(ph){
+      const isRace = ph==='race';
       raceCanvas.style.display = isRace ? 'block' : 'none';
       parkCanvas.style.display = isRace ? 'none' : 'block';
       raceLegend.style.display = isRace ? 'flex' : 'none';
       parkLegend.style.display = isRace ? 'none' : 'flex';
       phaseBadge.textContent = isRace ? '🏁 שלב נוכחי: מרוץ' : '🅿️ שלב נוכחי: חניה';
       statPhase.textContent = isRace ? 'מרוץ' : 'חניה';
+    }
+    function setPhase(p){
+      phase = p;
+      if(suppressPhaseUI) return;
       frameCounter = 0;
+      // כשיש מסלול תצוגה נפרד ואיטי יותר מהאימון, מעברי שלב של האימון (המהיר)
+      // לא אמורים להחליף את הקנבס הגלוי — זה מה שגרם להבהוב חניה לשנייה.
+      // עדכון ה-UI במקרה הזה נעשה מתוך advanceDisplay(), לפי השלב שבאמת מוצג.
+      if(displaySpeed === trainingSpeed) applyPhaseUI(phase);
     }
 
     function onRacePhaseDone(success){
@@ -2460,6 +2466,7 @@
       displayPrevTheta=prevTheta; displayAngleUnwrapped=angleUnwrapped;
       displayRaceSteps=raceStepsInEpisode; displayParkSteps=parkStepsInEpisode;
       displayRaceLastAction=raceLastAction; displayParkLastAction=parkLastAction;
+      applyPhaseUI(displayPhase);
       ({phase, car, pcar, prevTheta, angleUnwrapped, raceTrail, parkTrail, raceStepsInEpisode, parkStepsInEpisode, raceLastAction, parkLastAction} = trainingState);
       evalMode = previousEvalMode; epsilon = previousEpsilon;
     }

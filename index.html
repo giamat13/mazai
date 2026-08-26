@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mazei — AI לומד לנווט</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1117;
+    --bg2:#151824;
+    --panel:#1a1d2b;
+    --panel2:#20243570;
+    --border:#2a2f45;
+    --text:#e8eaf2;
+    --muted:#8b90a8;
+    --accent:#6c8cff;
+    --accent2:#a06cff;
+    --good:#3ddc97;
+    --bad:#ff5c7a;
+    --wall:#3a3f5c;
+    --agent:#ffd23f;
+    --start:#3ddc97;
+    --goal:#ff5c7a;
+    --road:#2b2f45;
+    --curb:#ff5c7a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 10%, #21254a55, transparent 45%),
+      radial-gradient(circle at 85% 90%, #3b1f4a55, transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Rubik', system-ui, sans-serif;
+    padding:24px;
+  }
+  h1{
+    text-align:center;
+    font-size:1.7rem;
+    font-weight:800;
+    margin:0 0 4px;
+    background:linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    font-size:.9rem;
+    margin-bottom:24px;
+  }
+
+  /* ---- mode select ---- */
+  #modeSelect{
+    max-width:640px;
+    margin:60px auto;
+    text-align:center;
+  }
+  .mode-cards{
+    display:flex;
+    gap:18px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:30px;
+  }
+  .mode-card{
+    width:230px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px 18px;
+    cursor:pointer;
+    color:var(--text);
+    font-family:inherit;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    box-shadow:0 10px 30px -14px #00000090;
+  }
+  .mode-card:hover{
+    transform:translateY(-4px);
+    border-color:var(--accent);
+    box-shadow:0 16px 34px -14px #6c8cff55;
+  }
+  .mode-card .emoji{font-size:2.4rem;}
+  .mode-card .title{font-size:1.1rem;font-weight:700;}
+  .mode-card .desc{font-size:.78rem;color:var(--muted);line-height:1.5;}
+
+  /* ---- app shell ---- */
+  #appWrap{display:none;}
+  .topbar{
+    max-width:1180px;
+    margin:0 auto 10px;
+    display:flex;
+    justify-content:flex-start;
+  }
+  .btn-back{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:9px;
+    padding:7px 14px;
+    font-size:.8rem;
+    cursor:pointer;
+    font-family:inherit;
+    font-weight:600;
+  }
+  .btn-back:hover{filter:brightness(1.2);}
+
+  .layout{
+    display:flex;
+    gap:20px;
+    max-width:1180px;
+    margin:0 auto;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-start;
+  }
+  .board-card, .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 10px 30px -12px #00000080;
+  }
+  .board-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  canvas.board{
+    background:var(--bg2);
+    border-radius:10px;
+    display:block;
+  }
+  .legend{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    justify-content:center;
+    font-size:.78rem;
+    color:var(--muted);
+  }
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  .panel{
+    width:300px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .panel h2{
+    font-size:.95rem;
+    margin:0 0 6px;
+    color:var(--accent);
+  }
+  .stats-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .stat{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px 10px;
+  }
+  .stat .label{font-size:.68rem;color:var(--muted);}
+  .stat .value{font-size:1.15rem;font-weight:700;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  button, select{
+    font-family:inherit;
+    border:none;
+    border-radius:9px;
+    padding:9px 14px;
+    font-size:.85rem;
+    cursor:pointer;
+    font-weight:600;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  button:active{transform:scale(.96);}
+  .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;}
+  .btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+  .btn-secondary:hover{filter:brightness(1.2);}
+  select{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+  label.field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:.78rem;
+    color:var(--muted);
+  }
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  .toggle-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:.82rem;
+  }
+  .chart-wrap{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px;
+  }
+  .chart-wrap .label{font-size:.68rem;color:var(--muted);margin-bottom:4px;}
+  canvas.chart{width:100%;display:block;}
+  .footer-note{
+    text-align:center;
+    color:var(--muted);
+    font-size:.72rem;
+    margin-top:18px;
+    max-width:600px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+</style>
+</head>
+<body>
+
+  <div id="modeSelect">
+    <h1>🤖 Mazei</h1>
+    <p class="subtitle">אלגוריתמי למידה מחיזוקים (Q-Learning) אמיתיים, רצים כולם בדפדפן — בלי API חיצוני ובלי ידע מוקדם</p>
+    <div class="mode-cards">
+      <button class="mode-card" data-mode="maze">
+        <span class="emoji">🧭</span>
+        <span class="title">מבוך</span>
+        <span class="desc">סוכן AI לומד למצוא את הדרך מנקודת ההתחלה ליעד במבוך, צעד אחר צעד</span>
+      </button>
+      <button class="mode-card" data-mode="race">
+        <span class="emoji">🏎️</span>
+        <span class="title">נהיגת מרוצים</span>
+        <span class="desc">סוכן AI לומד לנהוג במסלול מעגלי בעזרת חיישני מרחק, בלי לרדת מהכביש</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="appWrap">
+    <div class="topbar"><button class="btn-back" id="btnBackToMenu">⬅ תפריט ראשי</button></div>
+
+    <!-- ================= MAZE SECTION ================= -->
+    <div id="mazeSection">
+      <h1>🧭 Mazei — מבוך</h1>
+      <p class="subtitle">ה-AI לא מכיר את המבוך מראש, ולומד רק מניסוי וטעייה</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="mazeCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--start)"></span> התחלה</span>
+            <span><span class="dot" style="background:var(--goal)"></span> יעד</span>
+            <span><span class="dot" style="background:var(--agent)"></span> הסוכן</span>
+            <span><span class="dot" style="background:var(--wall)"></span> קיר</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="mzStatEpisode">0</div></div>
+              <div class="stat"><div class="label">צעדים באפיזודה</div><div class="value" id="mzStatSteps">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="mzStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צעדים לפתרון</div><div class="value" id="mzStatBest">–</div></div>
+              <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="mzStatSuccess">0%</div></div>
+              <div class="stat"><div class="label">סה"כ הגעות ליעד</div><div class="value" id="mzStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">צעדים עד פתרון (מגמת למידה, נמוך=טוב)</div>
+            <canvas id="mzChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="mzBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="mzBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="mzBtnNewMaze">🎲 מבוך חדש</button>
+              <select id="mzMazeSize">
+                <option value="10">קטן 10×10</option>
+                <option value="15" selected>בינוני 15×15</option>
+                <option value="21">גדול 21×21</option>
+              </select>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="mzSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="mzSpeedSlider" min="1" max="300" value="10">
+            </label>
+            <div class="toggle-row"><span>הצג מפת חום (ערכי Q)</span><input type="checkbox" id="mzChkHeatmap" checked></div>
+            <div class="toggle-row"><span>הצג נתיב אפיזודה נוכחית</span><input type="checkbox" id="mzChkTrail" checked></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        הסוכן בוחר כיוון בכל צעד, מקבל תגמול (-1 צעד רגיל, -5 פגיעה בקיר, +100 הגעה ליעד), ומעדכן טבלת Q לפי משוואת Bellman. epsilon יורד עם הזמן — מעבר הדרגתי מחקירה אקראית לניצול הידע הנצבר.
+      </p>
+    </div>
+
+    <!-- ================= RACE SECTION ================= -->
+    <div id="raceSection" style="display:none;">
+      <h1>🏎️ Mazei — מרוץ</h1>
+      <p class="subtitle">הרכב לומד לנהוג לפי חיישני מרחק בלבד, בלי לרדת מהכביש</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="raceCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--agent)"></span> הרכב</span>
+            <span><span class="dot" style="background:var(--road)"></span> כביש</span>
+            <span><span class="dot" style="background:var(--curb)"></span> קו זינוק</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="rcStatEpisode">0</div></div>
+              <div class="stat"><div class="label">צעדים באפיזודה</div><div class="value" id="rcStatSteps">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="rcStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צעדים להקפה</div><div class="value" id="rcStatBest">–</div></div>
+              <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="rcStatSuccess">0%</div></div>
+              <div class="stat"><div class="label">סה"כ הקפות שהושלמו</div><div class="value" id="rcStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">צעדים עד השלמת הקפה (נמוך=טוב)</div>
+            <canvas id="rcChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="rcBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="rcBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="rcBtnNewTrack">🎲 מסלול חדש</button>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="rcSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="rcSpeedSlider" min="1" max="300" value="10">
+            </label>
+            <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="rcChkSensors" checked></div>
+            <div class="toggle-row"><span>הצג נתיב אפיזודה נוכחית</span><input type="checkbox" id="rcChkTrail" checked></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        הרכב "רואה" רק דרך 5 חיישני מרחק קדימה-אלכסון, ובכל צעד בוחר להאיץ/לפנות/לבלום. תגמול חיובי על התקדמות סביב המסלול, +200 על השלמת הקפה, ו-50- ואיפוס אם יורד מהכביש.
+      </p>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  // =====================================================================
+  // Shared mode switching
+  // =====================================================================
+  let currentMode = null; // 'maze' | 'race'
+  const modeSelect = document.getElementById('modeSelect');
+  const appWrap = document.getElementById('appWrap');
+  const mazeSection = document.getElementById('mazeSection');
+  const raceSection = document.getElementById('raceSection');
+
+  document.querySelectorAll('.mode-card').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentMode = btn.dataset.mode;
+      modeSelect.style.display = 'none';
+      appWrap.style.display = 'block';
+      mazeSection.style.display = currentMode==='maze' ? 'block' : 'none';
+      raceSection.style.display = currentMode==='race' ? 'block' : 'none';
+      if(currentMode==='maze') MazeApp.ensureStarted();
+      if(currentMode==='race') RaceApp.ensureStarted();
+    });
+  });
+  document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
+    currentMode = null;
+    appWrap.style.display = 'none';
+    modeSelect.style.display = 'block';
+  });
+
+  function getCss(varName){
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  }
+
+  // =====================================================================
+  // MAZE APP
+  // =====================================================================
+  const MazeApp = (function(){
+    let started = false;
+    let rows = 15, cols = 15;
+    let maze = [];
+    let Q = {};
+    let agent = {r:0,c:0};
+    let trail = [];
+    let episode = 0;
+    let stepsInEpisode = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.05, EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.95;
+    let maxStepsPerEpisode = rows*cols*3;
+    let bestSteps = null, goalsReached = 0;
+    let successHistory = [], stepsHistory = [];
+    let isTraining = false, stepsPerFrame = 10;
+    let showHeatmap = true, showTrail = true;
+
+    const DIRS = ['N','E','S','W'];
+    const DELTA = { N:[-1,0], E:[0,1], S:[1,0], W:[0,-1] };
+    const OPPOSITE = { N:'S', S:'N', E:'W', W:'E' };
+
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('mzChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('mzStatEpisode');
+    const statSteps = document.getElementById('mzStatSteps');
+    const statEpsilon = document.getElementById('mzStatEpsilon');
+    const statBest = document.getElementById('mzStatBest');
+    const statSuccess = document.getElementById('mzStatSuccess');
+    const statGoals = document.getElementById('mzStatGoals');
+
+    const btnToggleTrain = document.getElementById('mzBtnToggleTrain');
+    const btnResetQ = document.getElementById('mzBtnResetQ');
+    const btnNewMaze = document.getElementById('mzBtnNewMaze');
+    const mazeSizeSel = document.getElementById('mzMazeSize');
+    const speedSlider = document.getElementById('mzSpeedSlider');
+    const speedVal = document.getElementById('mzSpeedVal');
+    const chkHeatmap = document.getElementById('mzChkHeatmap');
+    const chkTrail = document.getElementById('mzChkTrail');
+
+    function generateMaze(r, c){
+      const cells = [];
+      for(let i=0;i<r;i++){
+        const row=[];
+        for(let j=0;j<c;j++) row.push({N:true,E:true,S:true,W:true,visited:false});
+        cells.push(row);
+      }
+      const stack = [{r:0,c:0}];
+      cells[0][0].visited = true;
+      while(stack.length){
+        const cur = stack[stack.length-1];
+        const neighbors = [];
+        DIRS.forEach(d=>{
+          const [dr,dc] = DELTA[d];
+          const nr = cur.r+dr, nc = cur.c+dc;
+          if(nr>=0 && nr<r && nc>=0 && nc<c && !cells[nr][nc].visited){
+            neighbors.push({r:nr,c:nc,dir:d});
+          }
+        });
+        if(neighbors.length===0){ stack.pop(); continue; }
+        const next = neighbors[Math.floor(Math.random()*neighbors.length)];
+        cells[cur.r][cur.c][next.dir] = false;
+        cells[next.r][next.c][OPPOSITE[next.dir]] = false;
+        cells[next.r][next.c].visited = true;
+        stack.push({r:next.r,c:next.c});
+      }
+      return cells;
+    }
+
+    function getQ(r,c){
+      const k = r+','+c;
+      if(!Q[k]) Q[k] = [0,0,0,0];
+      return Q[k];
+    }
+    function maxQ(r,c){ return Math.max(...getQ(r,c)); }
+
+    function chooseAction(r,c){
+      if(Math.random() < epsilon) return Math.floor(Math.random()*4);
+      const q = getQ(r,c);
+      let best=0;
+      for(let i=1;i<4;i++) if(q[i] > q[best]) best = i;
+      return best;
+    }
+
+    function doStep(actionIdx){
+      const dir = DIRS[actionIdx];
+      const cell = maze[agent.r][agent.c];
+      let reward, done=false;
+      if(cell[dir]){
+        reward = -5;
+        done = true;
+      } else {
+        const [dr,dc] = DELTA[dir];
+        agent.r += dr;
+        agent.c += dc;
+        reward = -1;
+        if(agent.r===rows-1 && agent.c===cols-1){
+          reward = 100;
+          done = true;
+        }
+      }
+      return {reward, done};
+    }
+
+    function learnStep(){
+      const r0=agent.r, c0=agent.c;
+      const action = chooseAction(r0,c0);
+      const q = getQ(r0,c0);
+      const {reward, done} = doStep(action);
+      const nextMax = maxQ(agent.r, agent.c);
+      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      stepsInEpisode++;
+      if(showTrail) trail.push({r:agent.r,c:agent.c});
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode(done);
+    }
+
+    function finishEpisode(success){
+      episode++;
+      successHistory.push(success?1:0);
+      if(successHistory.length>50) successHistory.shift();
+      stepsHistory.push(success ? stepsInEpisode : maxStepsPerEpisode);
+      if(stepsHistory.length>150) stepsHistory.shift();
+      if(success){
+        goalsReached++;
+        if(bestSteps===null || stepsInEpisode < bestSteps) bestSteps = stepsInEpisode;
+      }
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      agent = {r:0,c:0};
+      stepsInEpisode = 0;
+      trail = [];
+    }
+
+    function sizeCanvas(){
+      const maxDim = 560;
+      const cell = Math.floor(maxDim / Math.max(rows,cols));
+      canvas.width = cell*cols;
+      canvas.height = cell*rows;
+      canvas._cell = cell;
+    }
+
+    function drawMaze(){
+      const cell = canvas._cell;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      if(showHeatmap){
+        let mn=Infinity, mx=-Infinity;
+        for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+          const v = maxQ(r,c);
+          if(v<mn) mn=v;
+          if(v>mx) mx=v;
+        }
+        const range = (mx-mn) || 1;
+        for(let r=0;r<rows;r++){
+          for(let c=0;c<cols;c++){
+            const v = maxQ(r,c);
+            const t = Math.max(0, Math.min(1, (v-mn)/range));
+            if(v!==0){
+              const hue = 235 - t*175;
+              ctx.fillStyle = `hsla(${hue}, 75%, ${25+t*25}%, ${0.15+t*0.55})`;
+              ctx.fillRect(c*cell, r*cell, cell, cell);
+            }
+          }
+        }
+      }
+
+      ctx.fillStyle = getCss('--start');
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(0,0,cell,cell);
+      ctx.fillStyle = getCss('--goal');
+      ctx.fillRect((cols-1)*cell,(rows-1)*cell,cell,cell);
+      ctx.globalAlpha = 1;
+
+      if(showTrail && trail.length>1){
+        ctx.strokeStyle = 'rgba(255,210,63,0.55)';
+        ctx.lineWidth = Math.max(1,cell*0.12);
+        ctx.beginPath();
+        ctx.moveTo(cell*0.5, cell*0.5);
+        trail.forEach(p=>{ ctx.lineTo(p.c*cell+cell*0.5, p.r*cell+cell*0.5); });
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = getCss('--wall');
+      ctx.lineWidth = Math.max(2, cell*0.08);
+      ctx.lineCap = 'round';
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          const x=c*cell, y=r*cell;
+          const w = maze[r][c];
+          ctx.beginPath();
+          if(w.N){ ctx.moveTo(x,y); ctx.lineTo(x+cell,y); }
+          if(w.W){ ctx.moveTo(x,y); ctx.lineTo(x,y+cell); }
+          if(r===rows-1 && w.S){ ctx.moveTo(x,y+cell); ctx.lineTo(x+cell,y+cell); }
+          if(c===cols-1 && w.E){ ctx.moveTo(x+cell,y); ctx.lineTo(x+cell,y+cell); }
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.arc(agent.c*cell+cell/2, agent.r*cell+cell/2, cell*0.32, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#00000055';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    function drawChart(){
+      const w = chartCanvas.width = chartCanvas.clientWidth * devicePixelRatio;
+      chartCanvas.height = 70 * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCtx.clearRect(0,0,cw,ch);
+      if(stepsHistory.length<2) return;
+      const mx = Math.max(...stepsHistory);
+      const mn = Math.min(...stepsHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      stepsHistory.forEach((v,i)=>{
+        const x = (i/(stepsHistory.length-1)) * cw;
+        const y = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statSteps.textContent = stepsInEpisode;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestSteps===null ? '–' : bestSteps;
+      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
+      statSuccess.textContent = rate+'%';
+      statGoals.textContent = goalsReached;
+    }
+
+    function frame(){
+      if(currentMode==='maze'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        drawMaze();
+        drawChart();
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newMaze(){
+      rows = cols = parseInt(mazeSizeSel.value, 10);
+      maxStepsPerEpisode = rows*cols*3;
+      maze = generateMaze(rows, cols);
+      Q = {};
+      agent = {r:0,c:0};
+      trail = [];
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = null; goalsReached = 0;
+      successHistory = []; stepsHistory = [];
+      sizeCanvas();
+    }
+
+    function resetLearning(){
+      Q = {};
+      agent = {r:0,c:0};
+      trail = [];
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = null; goalsReached = 0;
+      successHistory = []; stepsHistory = [];
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewMaze.addEventListener('click', newMaze);
+    mazeSizeSel.addEventListener('change', newMaze);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkHeatmap.addEventListener('change', ()=>{ showHeatmap = chkHeatmap.checked; });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showHeatmap = chkHeatmap.checked;
+      showTrail = chkTrail.checked;
+      newMaze();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // RACE APP
+  // =====================================================================
+  const RaceApp = (function(){
+    let started = false;
+    const canvas = document.getElementById('raceCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('rcChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('rcStatEpisode');
+    const statSteps = document.getElementById('rcStatSteps');
+    const statEpsilon = document.getElementById('rcStatEpsilon');
+    const statBest = document.getElementById('rcStatBest');
+    const statSuccess = document.getElementById('rcStatSuccess');
+    const statGoals = document.getElementById('rcStatGoals');
+
+    const btnToggleTrain = document.getElementById('rcBtnToggleTrain');
+    const btnResetQ = document.getElementById('rcBtnResetQ');
+    const btnNewTrack = document.getElementById('rcBtnNewTrack');
+    const speedSlider = document.getElementById('rcSpeedSlider');
+    const speedVal = document.getElementById('rcSpeedVal');
+    const chkSensors = document.getElementById('rcChkSensors');
+    const chkTrail = document.getElementById('rcChkTrail');
+
+    const CANVAS_SIZE = 560;
+    let cx = CANVAS_SIZE/2, cy = CANVAS_SIZE/2;
+    let ringA = 200, ringB = 140, trackHalfWidth = 46;
+    let wobbleAmp = 0, wobbleFreq = 3, wobblePhase = 0;
+
+    let Q = {};
+    let car = {x:0,y:0,angle:0,speed:0};
+    let prevTheta = 0, angleUnwrapped = 0;
+    let trail = [];
+    let episode = 0, stepsInEpisode = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
+    const MAX_STEPS = 1200;
+    let bestSteps = null, lapsCompleted = 0;
+    let successHistory = [], stepsHistory = [];
+    let isTraining = false, stepsPerFrame = 10;
+    let showSensors = true, showTrail = true;
+
+    const ACCEL=0.18, BRAKE=0.28, MAXSPEED=3.6, AMBIENT_FRICTION=0.03, TURN_RATE=0.10;
+    const SENSOR_ANGLES = [-70,-35,0,35,70].map(d=>d*Math.PI/180);
+    const SENSOR_MAX = 100, SENSOR_STEP = 6;
+    const ACTIONS = 5; // 0 gas-straight,1 gas-left,2 gas-right,3 brake,4 coast
+
+    function trackRadius(theta){
+      const ct=Math.cos(theta), st=Math.sin(theta);
+      const base = (ringA*ringB)/Math.sqrt((ringB*ct)**2+(ringA*st)**2);
+      return base + wobbleAmp*Math.sin(wobbleFreq*theta+wobblePhase);
+    }
+    function distFromCenterline(x,y){
+      const dx=x-cx, dy=y-cy;
+      const theta=Math.atan2(dy,dx);
+      const rad=Math.hypot(dx,dy);
+      return {theta, dist: rad - trackRadius(theta)};
+    }
+    function isOffTrack(x,y){
+      return Math.abs(distFromCenterline(x,y).dist) > trackHalfWidth;
+    }
+
+    function castRay(angleOffset){
+      const ang = car.angle + angleOffset;
+      for(let d=SENSOR_STEP; d<=SENSOR_MAX; d+=SENSOR_STEP){
+        const rx = car.x + Math.cos(ang)*d;
+        const ry = car.y + Math.sin(ang)*d;
+        if(isOffTrack(rx,ry)) return d - SENSOR_STEP/2;
+      }
+      return SENSOR_MAX;
+    }
+
+    function bucket(v, maxV, n){
+      return Math.min(n-1, Math.floor((v/maxV)*n));
+    }
+
+    function getState(){
+      const sensors = SENSOR_ANGLES.map(a => bucket(castRay(a), SENSOR_MAX, 4));
+      const speedB = bucket(car.speed, MAXSPEED, 3);
+      return sensors.join(',') + '|' + speedB;
+    }
+
+    function getQ(state){
+      if(!Q[state]) Q[state] = new Array(ACTIONS).fill(0);
+      return Q[state];
+    }
+    function maxQ(state){ return Math.max(...getQ(state)); }
+
+    function chooseAction(state){
+      if(Math.random() < epsilon) return Math.floor(Math.random()*ACTIONS);
+      const q = getQ(state);
+      let best=0;
+      for(let i=1;i<ACTIONS;i++) if(q[i] > q[best]) best = i;
+      return best;
+    }
+
+    function applyPhysics(action){
+      const turn = TURN_RATE*(0.5+0.5*(car.speed/MAXSPEED));
+      switch(action){
+        case 0: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); break;
+        case 1: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); car.angle -= turn; break;
+        case 2: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); car.angle += turn; break;
+        case 3: car.speed = Math.max(0, car.speed-BRAKE); break;
+        case 4: car.speed = Math.max(0, car.speed-AMBIENT_FRICTION); break;
+      }
+      car.speed = Math.max(0, car.speed - AMBIENT_FRICTION*0.3);
+      car.x += Math.cos(car.angle)*car.speed;
+      car.y += Math.sin(car.angle)*car.speed;
+    }
+
+    function doCarStep(action){
+      applyPhysics(action);
+      const {theta, dist} = distFromCenterline(car.x, car.y);
+      let delta = theta - prevTheta;
+      if(delta > Math.PI) delta -= 2*Math.PI;
+      if(delta < -Math.PI) delta += 2*Math.PI;
+      prevTheta = theta;
+      angleUnwrapped += delta;
+
+      let reward = delta*40 - 0.05;
+      let done=false, success=false;
+
+      if(Math.abs(dist) > trackHalfWidth){
+        reward = -50;
+        done = true;
+      } else if(angleUnwrapped >= Math.PI*2 - 0.05){
+        reward += 200;
+        done = true;
+        success = true;
+      } else if(stepsInEpisode+1 >= MAX_STEPS){
+        done = true;
+      }
+      return {reward, done, success};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const {reward, done, success} = doCarStep(action);
+      const state1 = getState();
+      q[action] += ALPHA * (reward + GAMMA*maxQ(state1) - q[action]);
+      stepsInEpisode++;
+      if(showTrail) trail.push({x:car.x, y:car.y});
+      if(done) finishEpisode(success);
+    }
+
+    function resetCar(){
+      const theta0 = 0;
+      const r0 = trackRadius(theta0);
+      car.x = cx + r0; car.y = cy;
+      const dTheta = 0.01;
+      const r1 = trackRadius(theta0+dTheta);
+      const p1x = cx + r1*Math.cos(theta0+dTheta), p1y = cy + r1*Math.sin(theta0+dTheta);
+      car.angle = Math.atan2(p1y-car.y, p1x-car.x);
+      car.speed = 0;
+      prevTheta = theta0;
+      angleUnwrapped = 0;
+      trail = [];
+    }
+
+    function finishEpisode(success){
+      episode++;
+      successHistory.push(success?1:0);
+      if(successHistory.length>50) successHistory.shift();
+      stepsHistory.push(success ? stepsInEpisode : MAX_STEPS);
+      if(stepsHistory.length>150) stepsHistory.shift();
+      if(success){
+        lapsCompleted++;
+        if(bestSteps===null || stepsInEpisode < bestSteps) bestSteps = stepsInEpisode;
+      }
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      stepsInEpisode = 0;
+      resetCar();
+    }
+
+    function sampleTrackPoints(radiusOffset, n){
+      const pts = [];
+      for(let i=0;i<=n;i++){
+        const theta = -Math.PI + (i/n)*2*Math.PI;
+        const r = trackRadius(theta) + radiusOffset;
+        pts.push([cx+r*Math.cos(theta), cy+r*Math.sin(theta)]);
+      }
+      return pts;
+    }
+
+    function drawTrack(){
+      const outer = sampleTrackPoints(trackHalfWidth, 160);
+      const inner = sampleTrackPoints(-trackHalfWidth, 160);
+      ctx.fillStyle = getCss('--road');
+      ctx.beginPath();
+      outer.forEach((p,i)=> i===0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]));
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = getCss('--bg2');
+      ctx.beginPath();
+      inner.forEach((p,i)=> i===0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]));
+      ctx.closePath();
+      ctx.fill();
+
+      // start line at theta=0
+      const rOut = trackRadius(0)+trackHalfWidth, rIn = trackRadius(0)-trackHalfWidth;
+      ctx.strokeStyle = getCss('--curb');
+      ctx.lineWidth = 4;
+      ctx.setLineDash([6,5]);
+      ctx.beginPath();
+      ctx.moveTo(cx+rIn, cy);
+      ctx.lineTo(cx+rOut, cy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawCar(){
+      if(showTrail && trail.length>1){
+        ctx.strokeStyle = 'rgba(255,210,63,0.45)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        trail.forEach((p,i)=> i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+        ctx.stroke();
+      }
+      if(showSensors){
+        ctx.strokeStyle = 'rgba(160,108,255,0.55)';
+        ctx.lineWidth = 1.4;
+        SENSOR_ANGLES.forEach(a=>{
+          const d = castRay(a);
+          const ex = car.x + Math.cos(car.angle+a)*d;
+          const ey = car.y + Math.sin(car.angle+a)*d;
+          ctx.beginPath();
+          ctx.moveTo(car.x,car.y);
+          ctx.lineTo(ex,ey);
+          ctx.stroke();
+        });
+      }
+      ctx.save();
+      ctx.translate(car.x, car.y);
+      ctx.rotate(car.angle);
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.moveTo(10,0);
+      ctx.lineTo(-7,6);
+      ctx.lineTo(-7,-6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#00000055';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawTrack();
+      drawCar();
+    }
+
+    function drawChart(){
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCanvas.width = cw * devicePixelRatio;
+      chartCanvas.height = ch * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      chartCtx.clearRect(0,0,cw,ch);
+      if(stepsHistory.length<2) return;
+      const mx = Math.max(...stepsHistory), mn = Math.min(...stepsHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      stepsHistory.forEach((v,i)=>{
+        const x = (i/(stepsHistory.length-1)) * cw;
+        const y = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statSteps.textContent = stepsInEpisode;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestSteps===null ? '–' : bestSteps;
+      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
+      statSuccess.textContent = rate+'%';
+      statGoals.textContent = lapsCompleted;
+    }
+
+    function frame(){
+      if(currentMode==='race'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        draw();
+        drawChart();
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newTrack(){
+      ringA = 170 + Math.random()*60;
+      ringB = 110 + Math.random()*50;
+      trackHalfWidth = 38 + Math.random()*16;
+      wobbleAmp = Math.random()*30;
+      wobbleFreq = 2 + Math.floor(Math.random()*3);
+      wobblePhase = Math.random()*Math.PI*2;
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = null; lapsCompleted = 0;
+      successHistory = []; stepsHistory = [];
+      resetCar();
+    }
+
+    function resetLearning(){
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = null; lapsCompleted = 0;
+      successHistory = []; stepsHistory = [];
+      resetCar();
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewTrack.addEventListener('click', newTrack);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkSensors.addEventListener('change', ()=>{ showSensors = chkSensors.checked; });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      canvas.width = CANVAS_SIZE;
+      canvas.height = CANVAS_SIZE;
+      cx = CANVAS_SIZE/2; cy = CANVAS_SIZE/2;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showSensors = chkSensors.checked;
+      showTrail = chkTrail.checked;
+      newTrack();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+})();
+</script>
+</body>
+</html>

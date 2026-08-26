@@ -953,10 +953,14 @@
   function runTrainingBudget(stepFn, budgetMs){
     const start = performance.now();
     let count = 0;
-    while(performance.now() - start < budgetMs){
-      stepFn();
-      count++;
-      if(count > 300000) break; // safety net, not a normal limit
+    // Check the clock in batches: performance.now() itself is surprisingly
+    // expensive when called millions of times per second.
+    const CHECK_EVERY = 2048;
+    while(true){
+      const batch = Math.min(CHECK_EVERY, 300000 - count);
+      for(let i=0; i<batch; i++) stepFn();
+      count += batch;
+      if(count >= 300000 || performance.now() - start >= budgetMs) break;
     }
     return count;
   }
@@ -965,6 +969,14 @@
   function evalStepsPerSec(sliderVal){
     return 1 + (sliderVal-1)/99 * 24; // 1 .. 25 steps/sec
   }
+
+  // Training-speed tuning: spend a larger slice of each frame on pure learning
+  // and redraw less often while training. The UI is still refreshed regularly,
+  // but the learner gets substantially more Q-learning steps per second.
+  // Maximum-speed training: prioritize simulation over animation/DOM work.
+  // The browser remains interactive because the budget is still bounded per frame.
+  const TRAIN_BUDGET_MS = 85;
+  const TRAIN_RENDER_EVERY = 30;
 
   // =====================================================================
   // Shared mode switching
@@ -1439,12 +1451,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           drawMaze(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, 14);
-          if(frameCounter % 10 === 0){ drawMaze(); drawChart(); }
+          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){ drawMaze(); drawChart(); }
         } else {
           drawMaze(); drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -2317,8 +2329,8 @@
           if(phase==='race') drawRace(); else drawLot();
           drawChart();
         } else if(isTraining){
-          runTrainingBudget(doStep, 14);
-          if(frameCounter % 10 === 0){
+          runTrainingBudget(doStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){
             if(phase==='race') drawRace(); else drawLot();
             drawChart();
           }
@@ -2326,7 +2338,7 @@
           if(phase==='race') drawRace(); else drawLot();
           drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -2861,12 +2873,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           drawSnake(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, 14);
-          if(frameCounter % 10 === 0){ drawSnake(); drawChart(); }
+          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){ drawSnake(); drawChart(); }
         } else {
           drawSnake(); drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -3262,12 +3274,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, 14);
-          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -3637,12 +3649,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, 14);
-          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -4023,12 +4035,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, 14);
-          if(frameCounter % 10 === 0){ draw(); drawChart(); }
+          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
+          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        updateStats();
+        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -4183,7 +4195,7 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ffd23f'],[2,'#a06cff']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,420,420);const g=140;ctx.strokeStyle='#3a3f5c';ctx.lineWidth=10;ctx.lineCap='round';for(let i=1;i<3;i++){ctx.beginPath();ctx.moveTo(i*g,25);ctx.lineTo(i*g,395);ctx.stroke();ctx.beginPath();ctx.moveTo(25,i*g);ctx.lineTo(395,i*g);ctx.stroke();}for(let i=0;i<9;i++){const x=i%3*g+70,y=(i/3|0)*g+70,r=38;if(board[i]===1){ctx.strokeStyle='#ffd23f';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();}else if(board[i]===2){ctx.strokeStyle='#a06cff';ctx.lineWidth=13;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}}else if(training){runTrainingBudget(step,3.5);}render();requestAnimationFrame(frame);}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,85);if((frameCounter++ % TRAIN_RENDER_EVERY)===0)render();}else{render();}requestAnimationFrame(frame);}
     speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('tictactoe');newGame();});
@@ -4199,7 +4211,7 @@
   const Connect4App = (function(){
     let started=false,training=true,evalMode=false,ROWS=6,COLS=7,board=Array.from({length:6},()=>Array(7).fill(0)),player=1,gameOver=false;
     let Q1=Object.create(null),Q2=Object.create(null),episode=0,epsilon=1,ALPHA=.12,GAMMA=.95,EPS_DECAY=.997,wins1=0,wins2=0,draws=0,resultHistory=[],lastState=[null,null],lastAction=[null,null],nextMoveAt=0;
-    let evalSavedEpsilon=null,evalSavedTraining=null;const maxQEntries=9000;
+    let evalSavedEpsilon=null,evalSavedTraining=null,frameCounter=0;const maxQEntries=9000;
     const canvas=document.getElementById('c4Canvas'),ctx=canvas.getContext('2d'),status=document.getElementById('c4Status');
     const p1Pill=document.getElementById('c4P1Pill'),p2Pill=document.getElementById('c4P2Pill');
     const gamesEl=document.getElementById('c4StatGames'),epsEl=document.getElementById('c4StatEpsilon'),aEl=document.getElementById('c4StatA'),bEl=document.getElementById('c4StatB'),dEl=document.getElementById('c4StatDraw'),rEl=document.getElementById('c4StatResult'),chart=document.getElementById('c4Chart'),cctx=chart.getContext('2d');
@@ -4221,7 +4233,7 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ff5c7a'],[2,'#ffd23f']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,560,520);const pad=24,cell=Math.min((560-2*pad)/COLS,(520-2*pad)/ROWS),bw=COLS*cell,bh=ROWS*cell,x0=(560-bw)/2,y0=(520-bh)/2;ctx.fillStyle='#202435';ctx.fillRect(x0-10,y0-10,bw+20,bh+20);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=x0+c*cell+cell/2,y=y0+r*cell+cell/2;ctx.fillStyle='#151824';ctx.beginPath();ctx.arc(x,y,cell*.37,0,Math.PI*2);ctx.fill();if(board[r][c]){ctx.fillStyle=board[r][c]===1?'#ff5c7a':'#ffd23f';ctx.beginPath();ctx.arc(x,y,cell*.30,0,Math.PI*2);ctx.fill();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}}else if(training){runTrainingBudget(step,3.5);}render();requestAnimationFrame(frame);}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,85);if((frameCounter++ % TRAIN_RENDER_EVERY)===0)render();}else{render();}requestAnimationFrame(frame);}
     speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('connect4');newGame();});

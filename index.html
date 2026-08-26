@@ -232,6 +232,11 @@
             </div>
             <div class="eval-overlay" id="mzEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="mzBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="mzBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="mzFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל מבוך
                 <select id="mzMazeSize">
                   <option value="10">קטן 10×10</option>
@@ -345,6 +350,11 @@
             </div>
             <div class="eval-overlay" id="rpEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="rpBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="rpBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="rpFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל מסלול+מגרש
                 <select id="rpSize">
                   <option value="small">קטן</option>
@@ -440,6 +450,11 @@
             </div>
             <div class="eval-overlay" id="snEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="snBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="snBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="snFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל לוח
                 <select id="snBoardSize">
                   <option value="10">קטן 10×10</option>
@@ -534,6 +549,11 @@
             </div>
             <div class="eval-overlay" id="pgEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="pgBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="pgBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="pgFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל משקולת
                 <select id="pgPaddleSize">
                   <option value="small">קטנה (קשה)</option>
@@ -622,6 +642,11 @@
             </div>
             <div class="eval-overlay" id="cpEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="cpBtnExport">⬇️ ייצוא שמירה</button>
+              <button class="btn-secondary" id="cpBtnImport">⬆️ ייבוא שמירה</button>
+              <input type="file" id="cpFileImport" accept="application/json" style="display:none;">
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">רמת קושי
                 <select id="cpDifficulty">
                   <option value="easy">קל (מסילה רחבה)</option>
@@ -683,6 +708,23 @@
   }
   function clearGameState(key){
     try{ localStorage.removeItem(STORE_PREFIX+key); }catch(e){}
+  }
+  function downloadJSON(filename, obj){
+    const blob = new Blob([JSON.stringify(obj)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function readJSONFile(file, onData, onError){
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{ onData(JSON.parse(reader.result)); }
+      catch(e){ onError(e); }
+    };
+    reader.onerror = onError;
+    reader.readAsText(file);
   }
 
   // =====================================================================
@@ -778,6 +820,9 @@
     const btnResetQ = document.getElementById('mzBtnResetQ');
     const btnEval = document.getElementById('mzBtnEval');
     const evalOverlay = document.getElementById('mzEvalOverlay');
+    const btnExport = document.getElementById('mzBtnExport');
+    const btnImport = document.getElementById('mzBtnImport');
+    const fileImport = document.getElementById('mzFileImport');
     const alphaSlider = document.getElementById('mzAlphaSlider');
     const alphaVal = document.getElementById('mzAlphaVal');
     const gammaSlider = document.getElementById('mzGammaSlider');
@@ -1271,6 +1316,24 @@
       }
     });
 
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-maze-save.json', serializeMaze());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = restoreFromSaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק המבוך.'); return; }
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -1321,6 +1384,9 @@
     const btnResetQ = document.getElementById('rpBtnResetQ');
     const btnEval = document.getElementById('rpBtnEval');
     const evalOverlay = document.getElementById('rpEvalOverlay');
+    const btnExport = document.getElementById('rpBtnExport');
+    const btnImport = document.getElementById('rpBtnImport');
+    const fileImport = document.getElementById('rpFileImport');
     const alphaSlider = document.getElementById('rpAlphaSlider');
     const alphaVal = document.getElementById('rpAlphaVal');
     const gammaSlider = document.getElementById('rpGammaSlider');
@@ -2123,6 +2189,42 @@
       }
     });
 
+    function applySaved(saved){
+      const validQ = saved && typeof saved.raceQ==='object' && saved.raceQ!==null && typeof saved.parkQ==='object' && saved.parkQ!==null;
+      if(!validQ) return false;
+      if(saved.sizeKey) sizeSel.value = saved.sizeKey;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      newRound(); // regenerates a fresh track/lot; sensor-based state means saved Q still generalizes
+      raceQ = saved.raceQ || {}; parkQ = saved.parkQ || {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestRoundSteps = saved.bestRoundSteps===undefined?null:saved.bestRoundSteps;
+      fullSuccesses = saved.fullSuccesses||0;
+      successHistory = Array.isArray(saved.successHistory) ? saved.successHistory : [];
+      stepsHistory = Array.isArray(saved.stepsHistory) ? saved.stepsHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+      gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+      decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      return true;
+    }
+
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-racepark-save.json', serializeRP());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = applySaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק מרוץ+חנייה.'); return; }
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -2133,22 +2235,7 @@
       showPolicy = chkPolicy.checked;
       showHud = chkHud.checked;
       const saved = loadGameState('racepark');
-      if(saved && saved.raceQ){
-        if(saved.sizeKey) sizeSel.value = saved.sizeKey;
-        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
-        newRound(); // regenerates a fresh track/lot; sensor-based state means saved Q still generalizes
-        raceQ = saved.raceQ || {}; parkQ = saved.parkQ || {};
-        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
-        bestRoundSteps = saved.bestRoundSteps===undefined?null:saved.bestRoundSteps;
-        fullSuccesses = saved.fullSuccesses||0;
-        successHistory = saved.successHistory||[]; stepsHistory = saved.stepsHistory||[];
-        if(saved.ALPHA) ALPHA = saved.ALPHA;
-        if(saved.GAMMA) GAMMA = saved.GAMMA;
-        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
-        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
-        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
-        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
-      } else {
+      if(!saved || !applySaved(saved)){
         newRound();
       }
       requestAnimationFrame(frame);
@@ -2218,6 +2305,9 @@
     const btnResetQ = document.getElementById('snBtnResetQ');
     const btnEval = document.getElementById('snBtnEval');
     const evalOverlay = document.getElementById('snEvalOverlay');
+    const btnExport = document.getElementById('snBtnExport');
+    const btnImport = document.getElementById('snBtnImport');
+    const fileImport = document.getElementById('snFileImport');
     const confFill = document.getElementById('snConfFill');
     const alphaSlider = document.getElementById('snAlphaSlider');
     const alphaVal = document.getElementById('snAlphaVal');
@@ -2593,6 +2683,42 @@
       }
     });
 
+    function applySaved(saved){
+      const validQ = saved && typeof saved.Q==='object' && saved.Q!==null;
+      if(!validQ) return false;
+      if(saved.boardSizeKey) boardSizeSel.value = saved.boardSizeKey;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      if(saved.wrapMode!==undefined){ wrapMode = saved.wrapMode; chkWrap.checked = wrapMode; }
+      newGame(); // fresh board; snake's state is heading-relative so saved Q still applies
+      Q = saved.Q || {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestLen = saved.bestLen||1; foodEaten = saved.foodEaten||0;
+      scoreHistory = Array.isArray(saved.scoreHistory) ? saved.scoreHistory : [];
+      lenHistory = Array.isArray(saved.lenHistory) ? saved.lenHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+      gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+      decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      return true;
+    }
+
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-snake-save.json', serializeSnake());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = applySaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק הנחש.'); return; }
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -2601,22 +2727,7 @@
       turboMode = chkTurbo.checked;
       wrapMode = chkWrap.checked;
       const saved = loadGameState('snake');
-      if(saved && saved.Q){
-        if(saved.boardSizeKey) boardSizeSel.value = saved.boardSizeKey;
-        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
-        if(saved.wrapMode!==undefined){ wrapMode = saved.wrapMode; chkWrap.checked = wrapMode; }
-        newGame(); // fresh board; snake's state is heading-relative so saved Q still applies
-        Q = saved.Q || {};
-        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
-        bestLen = saved.bestLen||1; foodEaten = saved.foodEaten||0;
-        scoreHistory = saved.scoreHistory||[]; lenHistory = saved.lenHistory||[];
-        if(saved.ALPHA) ALPHA = saved.ALPHA;
-        if(saved.GAMMA) GAMMA = saved.GAMMA;
-        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
-        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
-        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
-        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
-      } else {
+      if(!saved || !applySaved(saved)){
         newGame();
       }
       requestAnimationFrame(frame);
@@ -2683,6 +2794,9 @@
     const btnResetQ = document.getElementById('pgBtnResetQ');
     const btnEval = document.getElementById('pgBtnEval');
     const evalOverlay = document.getElementById('pgEvalOverlay');
+    const btnExport = document.getElementById('pgBtnExport');
+    const btnImport = document.getElementById('pgBtnImport');
+    const fileImport = document.getElementById('pgFileImport');
     const confFill = document.getElementById('pgConfFill');
     const alphaSlider = document.getElementById('pgAlphaSlider');
     const alphaVal = document.getElementById('pgAlphaVal');
@@ -2960,6 +3074,41 @@
       }
     });
 
+    function applySaved(saved){
+      const validQ = saved && typeof saved.Q==='object' && saved.Q!==null;
+      if(!validQ) return false;
+      if(saved.paddleSizeKey) paddleSizeSel.value = saved.paddleSizeKey;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      newGame(); // fresh round; pong's state is relative-to-ball so saved Q still applies
+      Q = saved.Q || {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestRally = saved.bestRally||0; totalHits = saved.totalHits||0;
+      rallyHistory = Array.isArray(saved.rallyHistory) ? saved.rallyHistory : [];
+      chartHistory = Array.isArray(saved.chartHistory) ? saved.chartHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+      gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+      decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      return true;
+    }
+
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-pong-save.json', serializePong());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = applySaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק פונג.'); return; }
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -2967,21 +3116,7 @@
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
       const saved = loadGameState('pong');
-      if(saved && saved.Q){
-        if(saved.paddleSizeKey) paddleSizeSel.value = saved.paddleSizeKey;
-        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
-        newGame(); // fresh round; pong's state is relative-to-ball so saved Q still applies
-        Q = saved.Q || {};
-        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
-        bestRally = saved.bestRally||0; totalHits = saved.totalHits||0;
-        rallyHistory = saved.rallyHistory||[]; chartHistory = saved.chartHistory||[];
-        if(saved.ALPHA) ALPHA = saved.ALPHA;
-        if(saved.GAMMA) GAMMA = saved.GAMMA;
-        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
-        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
-        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
-        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
-      } else {
+      if(!saved || !applySaved(saved)){
         newGame();
       }
       requestAnimationFrame(frame);
@@ -3044,6 +3179,9 @@
     const btnResetQ = document.getElementById('cpBtnResetQ');
     const btnEval = document.getElementById('cpBtnEval');
     const evalOverlay = document.getElementById('cpEvalOverlay');
+    const btnExport = document.getElementById('cpBtnExport');
+    const btnImport = document.getElementById('cpBtnImport');
+    const fileImport = document.getElementById('cpFileImport');
     const alphaSlider = document.getElementById('cpAlphaSlider');
     const alphaVal = document.getElementById('cpAlphaVal');
     const gammaSlider = document.getElementById('cpGammaSlider');
@@ -3304,6 +3442,40 @@
       }
     });
 
+    function applySaved(saved){
+      const validQ = saved && typeof saved.Q==='object' && saved.Q!==null;
+      if(!validQ) return false;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      newGame();
+      Q = saved.Q || {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestSteps = saved.bestSteps||0; solvedCount = saved.solvedCount||0;
+      stepsHistory = Array.isArray(saved.stepsHistory) ? saved.stepsHistory : [];
+      chartHistory = Array.isArray(saved.chartHistory) ? saved.chartHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+      gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+      decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      return true;
+    }
+
+    btnExport.addEventListener('click', ()=>{
+      downloadJSON('mazai-cartpole-save.json', serializeCP());
+    });
+    btnImport.addEventListener('click', ()=> fileImport.click());
+    fileImport.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      fileImport.value = '';
+      if(!file) return;
+      readJSONFile(file, (data)=>{
+        const ok = applySaved(data);
+        if(!ok){ alert('קובץ השמירה אינו תואם למשחק העמוד המאוזן.'); return; }
+        persist();
+      }, ()=> alert('לא ניתן לקרוא את קובץ השמירה — ודאו שזהו קובץ JSON תקין.'));
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -3311,20 +3483,7 @@
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
       const saved = loadGameState('cartpole');
-      if(saved && saved.Q){
-        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
-        newGame();
-        Q = saved.Q || {};
-        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
-        bestSteps = saved.bestSteps||0; solvedCount = saved.solvedCount||0;
-        stepsHistory = saved.stepsHistory||[]; chartHistory = saved.chartHistory||[];
-        if(saved.ALPHA) ALPHA = saved.ALPHA;
-        if(saved.GAMMA) GAMMA = saved.GAMMA;
-        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
-        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
-        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
-        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
-      } else {
+      if(!saved || !applySaved(saved)){
         newGame();
       }
       requestAnimationFrame(frame);

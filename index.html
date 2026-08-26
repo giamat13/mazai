@@ -148,15 +148,10 @@
         <span class="title">מבוך</span>
         <span class="desc">סוכן AI לומד למצוא את הדרך מנקודת ההתחלה ליעד במבוך, צעד אחר צעד</span>
       </button>
-      <button class="mode-card" data-mode="race">
-        <span class="emoji">🏎️</span>
-        <span class="title">נהיגת מרוצים</span>
-        <span class="desc">סוכן AI לומד לנהוג במסלול מעגלי בעזרת חיישני מרחק, בלי לרדת מהכביש</span>
-      </button>
-      <button class="mode-card" data-mode="park">
-        <span class="emoji">🅿️</span>
-        <span class="title">חניה</span>
-        <span class="desc">סוכן AI לומד לחנות רכב במקום צר, כולל נסיעה לאחור, בלי לפגוע ברכבים שכנים</span>
+      <button class="mode-card" data-mode="racepark">
+        <span class="emoji">🏎️🅿️</span>
+        <span class="title">מרוץ + חניה</span>
+        <span class="desc">סוכן AI נוהג הקפה שלמה במסלול מעגלי לפי חיישני מרחק, ובסוף ההקפה נכנס לחנות במקום צר — משימה אחת משולבת של נהיגה וחניה</span>
       </button>
       <button class="mode-card" data-mode="snake">
         <span class="emoji">🐍</span>
@@ -167,6 +162,16 @@
         <span class="emoji">🟡</span>
         <span class="title">פקמן</span>
         <span class="desc">משחק פקמן מלא — בחרו אם השחקן הוא AI או אתם, ואיזה מהרוחות (עם האישיות הקלאסית שלהן) מנוהלות ע"י AI</span>
+      </button>
+      <button class="mode-card" data-mode="pong">
+        <span class="emoji">🏓</span>
+        <span class="title">פונג — הגנה</span>
+        <span class="desc">סוכן AI לומד להזיז משקולת (מחבט) כדי להחזיר כדור ולא לפספס אותו, מול קיר וממנו הכדור מקפץ</span>
+      </button>
+      <button class="mode-card" data-mode="cartpole">
+        <span class="emoji">⚖️</span>
+        <span class="title">עמוד מאוזן</span>
+        <span class="desc">ההדגמה הקלאסית של תחום ה-RL: סוכן AI לומד לדחוף עגלה שמאלה וימינה כדי לשמור על מוט זקוף מעליה</span>
       </button>
     </div>
   </div>
@@ -251,8 +256,9 @@
             </div>
             <label class="field">
               מהירות אימון: <b id="mzSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="mzSpeedSlider" min="1" max="300" value="10">
+              <input type="range" id="mzSpeedSlider" min="1" max="3000" value="10">
             </label>
+            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="mzChkTurbo"></div>
             <div class="toggle-row"><span>הצג מפת חום (ערכי Q)</span><input type="checkbox" id="mzChkHeatmap" checked></div>
             <div class="toggle-row"><span>הצג חצי מדיניות נלמדת</span><input type="checkbox" id="mzChkPolicy" checked></div>
             <div class="toggle-row"><span>הצג נתיב אפיזודה נוכחית</span><input type="checkbox" id="mzChkTrail" checked></div>
@@ -264,87 +270,21 @@
       </p>
     </div>
 
-    <!-- ================= RACE SECTION ================= -->
-    <div id="raceSection" style="display:none;">
-      <h1>🏎️ Mazei — מרוץ</h1>
-      <p class="subtitle">הרכב לומד לנהוג לפי חיישני מרחק בלבד, בלי לרדת מהכביש</p>
+    <!-- ================= RACE+PARK SECTION ================= -->
+    <div id="raceParkSection" style="display:none;">
+      <h1>🏎️🅿️ Mazei — מרוץ + חניה</h1>
+      <p class="subtitle" id="rpSubtitle">שלב 1: הרכב לומד לנהוג הקפה שלמה לפי חיישני מרחק. בסיום ההקפה — שלב 2: כניסה לחניה צרה</p>
       <div class="layout">
         <div class="board-card">
-          <canvas id="raceCanvas" class="board"></canvas>
-          <div class="legend">
+          <div id="rpPhaseBadge" style="font-weight:700; font-size:.85rem; padding:5px 12px; border-radius:20px; background:var(--panel2); border:1px solid var(--border); color:var(--accent2);">🏁 שלב נוכחי: מרוץ</div>
+          <canvas id="rpRaceCanvas" class="board"></canvas>
+          <canvas id="rpParkCanvas" class="board" style="display:none;"></canvas>
+          <div class="legend" id="rpRaceLegend">
             <span><span class="dot" style="background:var(--agent)"></span> הרכב</span>
             <span><span class="dot" style="background:var(--road)"></span> כביש</span>
             <span><span class="dot" style="background:var(--curb)"></span> קו זינוק</span>
           </div>
-          <div class="heat-legend">
-            <span>נתיב איטי</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#ffd23f,#ff5c7a);"></div><span>מהיר</span>
-          </div>
-        </div>
-        <div class="panel">
-          <div>
-            <h2>📊 סטטיסטיקות</h2>
-            <div class="stats-grid">
-              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="rcStatEpisode">0</div></div>
-              <div class="stat"><div class="label">צעדים באפיזודה</div><div class="value" id="rcStatSteps">0</div></div>
-              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="rcStatEpsilon">1.00</div></div>
-              <div class="stat"><div class="label">שיא צעדים להקפה</div><div class="value" id="rcStatBest">–</div></div>
-              <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="rcStatSuccess">0%</div></div>
-              <div class="stat"><div class="label">סה"כ הקפות שהושלמו</div><div class="value" id="rcStatGoals">0</div></div>
-            </div>
-          </div>
-          <div class="chart-wrap">
-            <div class="label">צעדים עד השלמת הקפה (נמוך=טוב)</div>
-            <canvas id="rcChart" class="chart" height="70"></canvas>
-          </div>
-          <div>
-            <h2>⚙️ בקרה</h2>
-            <div class="row" style="margin-bottom:10px;">
-              <button class="btn-primary" id="rcBtnToggleTrain">▶ התחל אימון</button>
-              <button class="btn-secondary" id="rcBtnResetQ">איפוס למידה</button>
-            </div>
-            <div class="row" style="margin-bottom:10px;">
-              <label class="field-inline">גודל מסלול
-                <select id="rcSize">
-                  <option value="small">קטן</option>
-                  <option value="medium" selected>בינוני</option>
-                  <option value="large">גדול</option>
-                </select>
-              </label>
-              <label class="field-inline">רמת קושי
-                <select id="rcDifficulty">
-                  <option value="easy">קל</option>
-                  <option value="medium" selected>בינוני</option>
-                  <option value="hard">קשה</option>
-                </select>
-              </label>
-            </div>
-            <div class="row" style="margin-bottom:10px;">
-              <button class="btn-secondary" id="rcBtnNewTrack">🎲 מסלול חדש</button>
-            </div>
-            <label class="field">
-              מהירות אימון: <b id="rcSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="rcSpeedSlider" min="1" max="300" value="10">
-            </label>
-            <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="rcChkSensors" checked></div>
-            <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="rcChkTrail" checked></div>
-            <div class="toggle-row"><span>הצג חצי מדיניות נלמדת על המסלול</span><input type="checkbox" id="rcChkPolicy" checked></div>
-            <div class="toggle-row"><span>הצג לוח מחוונים (HUD)</span><input type="checkbox" id="rcChkHud" checked></div>
-          </div>
-        </div>
-      </div>
-      <p class="footer-note">
-        הרכב "רואה" רק דרך 5 חיישני מרחק קדימה-אלכסון, ובכל צעד בוחר להאיץ/לפנות/לבלום. תגמול חיובי על התקדמות סביב המסלול, +200 על השלמת הקפה, ו-50- ואיפוס מיידי לנקודת הזינוק אם יורד מהכביש. רמת הקושי משפיעה על רוחב הכביש, עקמומיות המסלול ומהירות הרכב.
-      </p>
-    </div>
-
-    <!-- ================= PARKING SECTION ================= -->
-    <div id="parkSection" style="display:none;">
-      <h1>🅿️ Mazei — חניה</h1>
-      <p class="subtitle">הרכב לומד לתמרן קדימה ואחורה כדי להיכנס למקום חניה צר, בלי לפגוע ברכבים השכנים</p>
-      <div class="layout">
-        <div class="board-card">
-          <canvas id="parkCanvas" class="board"></canvas>
-          <div class="legend">
+          <div class="legend" id="rpParkLegend" style="display:none;">
             <span><span class="dot" style="background:var(--agent)"></span> הרכב</span>
             <span><span class="dot" style="background:var(--good)"></span> מקום חניה</span>
             <span><span class="dot" style="background:var(--wall)"></span> רכב חונה / קיר</span>
@@ -357,55 +297,58 @@
           <div>
             <h2>📊 סטטיסטיקות</h2>
             <div class="stats-grid">
-              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="pkStatEpisode">0</div></div>
-              <div class="stat"><div class="label">צעדים באפיזודה</div><div class="value" id="pkStatSteps">0</div></div>
-              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="pkStatEpsilon">1.00</div></div>
-              <div class="stat"><div class="label">שיא צעדים לחניה</div><div class="value" id="pkStatBest">–</div></div>
-              <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="pkStatSuccess">0%</div></div>
-              <div class="stat"><div class="label">סה"כ חניות מוצלחות</div><div class="value" id="pkStatGoals">0</div></div>
+              <div class="stat"><div class="label">סבב (מרוץ+חניה)</div><div class="value" id="rpStatEpisode">0</div></div>
+              <div class="stat"><div class="label">שלב נוכחי</div><div class="value" id="rpStatPhase">מרוץ</div></div>
+              <div class="stat"><div class="label">צעדים בשלב הנוכחי</div><div class="value" id="rpStatSteps">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="rpStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צעדים לסבב מלא</div><div class="value" id="rpStatBest">–</div></div>
+              <div class="stat"><div class="label">אחוז הצלחה מלאה (50 אחרונים)</div><div class="value" id="rpStatSuccess">0%</div></div>
+              <div class="stat" style="grid-column:1/-1;"><div class="label">סה"כ סבבים שהושלמו (הקפה + חניה)</div><div class="value" id="rpStatGoals">0</div></div>
             </div>
           </div>
           <div class="chart-wrap">
-            <div class="label">צעדים עד חניה מוצלחת (נמוך=טוב)</div>
-            <canvas id="pkChart" class="chart" height="70"></canvas>
+            <div class="label">צעדים לסבב מלא — מרוץ+חניה (נמוך=טוב)</div>
+            <canvas id="rpChart" class="chart" height="70"></canvas>
           </div>
           <div>
             <h2>⚙️ בקרה</h2>
             <div class="row" style="margin-bottom:10px;">
-              <button class="btn-primary" id="pkBtnToggleTrain">▶ התחל אימון</button>
-              <button class="btn-secondary" id="pkBtnResetQ">איפוס למידה</button>
+              <button class="btn-primary" id="rpBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="rpBtnResetQ">איפוס למידה</button>
             </div>
             <div class="row" style="margin-bottom:10px;">
-              <label class="field-inline">גודל מגרש
-                <select id="pkSize">
+              <label class="field-inline">גודל מסלול+מגרש
+                <select id="rpSize">
                   <option value="small">קטן</option>
                   <option value="medium" selected>בינוני</option>
                   <option value="large">גדול</option>
                 </select>
               </label>
               <label class="field-inline">רמת קושי
-                <select id="pkDifficulty">
-                  <option value="easy">קל (מקום רחב)</option>
+                <select id="rpDifficulty">
+                  <option value="easy">קל</option>
                   <option value="medium" selected>בינוני</option>
-                  <option value="hard">קשה (חניה צמודה)</option>
+                  <option value="hard">קשה</option>
                 </select>
               </label>
             </div>
             <div class="row" style="margin-bottom:10px;">
-              <button class="btn-secondary" id="pkBtnNewLot">🎲 מגרש חדש</button>
+              <button class="btn-secondary" id="rpBtnNewRound">🎲 מסלול+מגרש חדשים</button>
             </div>
             <label class="field">
-              מהירות אימון: <b id="pkSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="pkSpeedSlider" min="1" max="300" value="10">
+              מהירות אימון: <b id="rpSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="rpSpeedSlider" min="1" max="3000" value="10">
             </label>
-            <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="pkChkSensors" checked></div>
-            <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="pkChkTrail" checked></div>
-            <div class="toggle-row"><span>הצג לוח מחוונים (HUD)</span><input type="checkbox" id="pkChkHud" checked></div>
+            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="rpChkTurbo"></div>
+            <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="rpChkSensors" checked></div>
+            <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="rpChkTrail" checked></div>
+            <div class="toggle-row"><span>הצג חצי מדיניות נלמדת (בשלב המרוץ)</span><input type="checkbox" id="rpChkPolicy" checked></div>
+            <div class="toggle-row"><span>הצג לוח מחוונים (HUD)</span><input type="checkbox" id="rpChkHud" checked></div>
           </div>
         </div>
       </div>
       <p class="footer-note">
-        הרכב "רואה" 5 חיישני מרחק (כולל אחורה), ויודע גם את המרחק והזווית שלו יחסית למקום החניה. הוא בוחר בכל צעד בין האצה קדימה/פנייה/נסיעה לאחור/בלימה. תגמול על התקרבות ויישור נכון למקום, 50- על פגיעה ברכב שכן או בקיר, +200 על חניה מוצלחת (בתוך המקום, כמעט ללא תנועה, עם כיוון נכון).
+        משימה משולבת בשני שלבים ברצף, עם שני "מוחות" נפרדים (טבלאות Q נפרדות) שכל אחד מתמחה במשימה שלו. <b>שלב המרוץ</b>: הרכב "רואה" 5 חיישני מרחק קדימה-אלכסון ובוחר להאיץ/לפנות/לבלום, עם תגמול חיובי על התקדמות סביב המסלול ועונש+איפוס אם יורד מהכביש. ברגע שמושלמת הקפה שלמה, הרכב "נכנס לפיט" ועובר מיד לשלב השני על אותו סבב. <b>שלב החניה</b>: מגרש חניה צר עם רכבים חונים משני צדי המקום המבוקש; הרכב בוחר בין קדימה/אחורה/פנייה/בלימה, עם תגמול על התקרבות ויישור נכון ועונש על פגיעה. סבב נחשב "הצלחה מלאה" רק אם גם ההקפה וגם החניה הצליחו; כישלון בכל שלב (ירידה מהכביש, פגיעה בחניה, או תפוגת זמן) מסיים את הסבב מיד וחוזרים לתחילת המרוץ. רמת הקושי וגודל המסלול/מגרש משפיעים על שני השלבים יחד.
       </p>
     </div>
 
@@ -469,8 +412,9 @@
             </div>
             <label class="field">
               מהירות אימון: <b id="snSpeedVal">10</b> צעדים/פריים
-              <input type="range" id="snSpeedSlider" min="1" max="300" value="10">
+              <input type="range" id="snSpeedSlider" min="1" max="3000" value="10">
             </label>
+            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="snChkTurbo"></div>
             <div class="toggle-row"><span>הצג נתיב תנועה אחרון</span><input type="checkbox" id="snChkTrail" checked></div>
             <div class="toggle-row"><span>מעבר דרך קירות (Wrap)</span><input type="checkbox" id="snChkWrap"></div>
           </div>
@@ -505,6 +449,8 @@
               <div class="stat"><div class="label">חיים</div><div class="value" id="pacStatLives">3</div></div>
               <div class="stat"><div class="label">שלב</div><div class="value" id="pacStatLevel">1</div></div>
               <div class="stat"><div class="label">מצב רוחות</div><div class="value" id="pacStatPhase">פיזור</div></div>
+              <div class="stat"><div class="label">משחקים ששוחקו</div><div class="value" id="pacStatGames">0</div></div>
+              <div class="stat"><div class="label">שיא ניקוד</div><div class="value" id="pacStatHigh">0</div></div>
             </div>
           </div>
           <div>
@@ -528,13 +474,149 @@
             </div>
             <label class="field">
               מהירות: <b id="pacSpeedVal">6</b> צעדים/שנייה
-              <input type="range" id="pacSpeedSlider" min="2" max="16" value="6">
+              <input type="range" id="pacSpeedSlider" min="2" max="2000" value="6">
             </label>
+            <div class="toggle-row"><span>🔁 המשך אוטומטית למשחק הבא בסיום</span><input type="checkbox" id="pacChkAutoContinue" checked></div>
           </div>
         </div>
       </div>
       <p class="footer-note">
         לכל רוח יש אלגוריתם מרדף קלאסי משלה שרץ במלואו בדפדפן: בלינקי תמיד שואף היישר לתא של פקמן; פינקי שואפת ל-4 תאים לפני כיוון התנועה של פקמן (מארב); אינקי משלב את מיקום בלינקי עם המיקום שלפני פקמן ליצירת "מלכודת מלקחיים"; וקלייד רודף כל עוד הוא רחוק, אך בורח לפינה שלו כשהוא מתקרב מדי. מדי כמה שניות הרוחות עוברות בין מצב "מרדף" למצב "פיזור" (חזרה לפינות). אכילת "פריט-על" מבהילה את כל הרוחות הפעילות לזמן קצר וניתן לאכול אותן. כשה-AI של פקמן פעיל, הוא בוחר כל צעד לפי חיפוש הנתיב הקצר ביותר לפריט הקרוב ביותר, תוך בריחה מרוחות מסוכנות וציד רוחות מבוהלות.
+      </p>
+    </div>
+
+    <!-- ================= PONG SECTION ================= -->
+    <div id="pongSection" style="display:none;">
+      <h1>🏓 Mazei — פונג / הגנה</h1>
+      <p class="subtitle">המשקולת לומדת להחזיר כדור שמקפץ מהקירות, בלי לתת לו לחמוק</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="pongCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--agent)"></span> המשקולת</span>
+            <span><span class="dot" style="background:var(--goal)"></span> הכדור</span>
+            <span><span class="dot" style="background:var(--wall)"></span> קיר</span>
+          </div>
+          <div class="heat-legend">
+            <span>0 חבטות ברצף</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#a06cff);"></div><span>מגמת שיפור</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="pgStatEpisode">0</div></div>
+              <div class="stat"><div class="label">חבטות ברצף (נוכחי)</div><div class="value" id="pgStatRally">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="pgStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא חבטות ברצף</div><div class="value" id="pgStatBest">0</div></div>
+              <div class="stat"><div class="label">ממוצע (50 אחרונות)</div><div class="value" id="pgStatAvg">0</div></div>
+              <div class="stat"><div class="label">סה"כ חבטות</div><div class="value" id="pgStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">חבטות ברצף לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
+            <canvas id="pgChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="pgBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="pgBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">גודל משקולת
+                <select id="pgPaddleSize">
+                  <option value="small">קטנה (קשה)</option>
+                  <option value="medium" selected>בינונית</option>
+                  <option value="large">גדולה (קל)</option>
+                </select>
+              </label>
+              <label class="field-inline">רמת קושי
+                <select id="pgDifficulty">
+                  <option value="easy">קל (כדור איטי)</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="hard">קשה (מהיר ומאיץ)</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="pgBtnNewGame">🎲 סיבוב חדש</button>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="pgSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="pgSpeedSlider" min="1" max="3000" value="10">
+            </label>
+            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="pgChkTurbo"></div>
+            <div class="toggle-row"><span>הצג נתיב תנועת כדור אחרון</span><input type="checkbox" id="pgChkTrail" checked></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        המשקולת ניצבת בצד שמאל ויכולה לזוז מעלה/מטה/להישאר במקום. הכדור מקפץ מקירות למעלה, למטה וימין, ונע שמאלה לעברה. הסוכן "רואה" מצב מצומצם: מיקום המשקולת יחסית לכדור, לאן הכדור זז אנכית ואם הוא מתקרב או מתרחק אופקית. החזרת הכדור נותנת תגמול חיובי (וברמת קושי "קשה" הכדור מאיץ בכל חבטה), פספוס הכדור מסיים את האפיזודה בעונש והכל מתחיל מחדש. רמת הקושי קובעת את מהירות הכדור ההתחלתית והאם היא עולה עם הזמן.
+      </p>
+    </div>
+
+    <!-- ================= CARTPOLE SECTION ================= -->
+    <div id="cartpoleSection" style="display:none;">
+      <h1>⚖️ Mazei — עמוד מאוזן</h1>
+      <p class="subtitle">ההדגמה הקלאסית של RL: דחיפת עגלה שמאלה/ימינה כדי לשמור על מוט זקוף מעליה</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="cpCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--agent)"></span> העגלה</span>
+            <span><span class="dot" style="background:var(--goal)"></span> המוט</span>
+            <span><span class="dot" style="background:var(--wall)"></span> מסילה</span>
+          </div>
+          <div class="heat-legend">
+            <span>0 צעדים באיזון</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#a06cff);"></div><span>מגמת שיפור</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="cpStatEpisode">0</div></div>
+              <div class="stat"><div class="label">צעדים באיזון (נוכחי)</div><div class="value" id="cpStatSteps">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="cpStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צעדים באיזון</div><div class="value" id="cpStatBest">0</div></div>
+              <div class="stat"><div class="label">ממוצע (50 אחרונות)</div><div class="value" id="cpStatAvg">0</div></div>
+              <div class="stat"><div class="label">סה"כ אפיזודות "פתורות"</div><div class="value" id="cpStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">צעדים באיזון לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
+            <canvas id="cpChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="cpBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="cpBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">רמת קושי
+                <select id="cpDifficulty">
+                  <option value="easy">קל (מסילה רחבה)</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="hard">קשה (מסילה צרה)</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="cpBtnNewGame">🎲 התחלה חדשה</button>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="cpSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="cpSpeedSlider" min="1" max="3000" value="10">
+            </label>
+            <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="cpChkTurbo"></div>
+            <div class="toggle-row"><span>הצג עקבות תנועת עגלה</span><input type="checkbox" id="cpChkTrail" checked></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        זו ההדגמה הפיזיקלית המפורסמת ביותר בתחום ה-RL. הסוכן בוחר בכל צעד רק בין דחיפת העגלה שמאלה או ימינה, על סמך מצב מצומצם ל-4 משתנים בדידים: מיקום העגלה, מהירותה, זווית המוט וקצב הנטייה שלו — כל אחד מחולק לתאים בודדים כדי לאפשר למידת Q עם טבלה קטנה. כל צעד שהמוט נשאר זקוף (עד סטייה של כ-12 מעלות) והעגלה בתוך המסילה נותן תגמול של 1; נפילת המוט או יציאה מהמסילה מסיימת את האפיזודה. אפיזודה שמחזיקה מעל 300 צעדים נספרת כ"פתורה". רמת הקושי קובעת את רוחב המסילה הזמינה לעגלה.
       </p>
     </div>
   </div>
@@ -546,14 +628,15 @@
   // =====================================================================
   // Shared mode switching
   // =====================================================================
-  let currentMode = null; // 'maze' | 'race' | 'park' | 'snake' | 'pacman'
+  let currentMode = null; // 'maze' | 'racepark' | 'snake' | 'pacman' | 'pong' | 'cartpole'
   const modeSelect = document.getElementById('modeSelect');
   const appWrap = document.getElementById('appWrap');
   const mazeSection = document.getElementById('mazeSection');
-  const raceSection = document.getElementById('raceSection');
-  const parkSection = document.getElementById('parkSection');
+  const raceParkSection = document.getElementById('raceParkSection');
   const snakeSection = document.getElementById('snakeSection');
   const pacmanSection = document.getElementById('pacmanSection');
+  const pongSection = document.getElementById('pongSection');
+  const cartpoleSection = document.getElementById('cartpoleSection');
 
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -561,15 +644,17 @@
       modeSelect.style.display = 'none';
       appWrap.style.display = 'block';
       mazeSection.style.display = currentMode==='maze' ? 'block' : 'none';
-      raceSection.style.display = currentMode==='race' ? 'block' : 'none';
-      parkSection.style.display = currentMode==='park' ? 'block' : 'none';
+      raceParkSection.style.display = currentMode==='racepark' ? 'block' : 'none';
       snakeSection.style.display = currentMode==='snake' ? 'block' : 'none';
       pacmanSection.style.display = currentMode==='pacman' ? 'block' : 'none';
+      pongSection.style.display = currentMode==='pong' ? 'block' : 'none';
+      cartpoleSection.style.display = currentMode==='cartpole' ? 'block' : 'none';
       if(currentMode==='maze') MazeApp.ensureStarted();
-      if(currentMode==='race') RaceApp.ensureStarted();
-      if(currentMode==='park') ParkApp.ensureStarted();
+      if(currentMode==='racepark') RaceParkApp.ensureStarted();
       if(currentMode==='snake') SnakeApp.ensureStarted();
       if(currentMode==='pacman') PacmanApp.ensureStarted();
+      if(currentMode==='pong') PongApp.ensureStarted();
+      if(currentMode==='cartpole') CartPoleApp.ensureStarted();
     });
   });
   document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
@@ -600,6 +685,7 @@
     let bestSteps = null, goalsReached = 0;
     let successHistory = [], stepsHistory = [];
     let isTraining = false, stepsPerFrame = 10;
+    let turboMode = false, frameCounter = 0;
     let showHeatmap = true, showTrail = true, showPolicy = true;
     let wallPenalty = -5, braidProb = 0.12;
     let itemCount = 0;
@@ -639,6 +725,7 @@
     const chkHeatmap = document.getElementById('mzChkHeatmap');
     const chkPolicy = document.getElementById('mzChkPolicy');
     const chkTrail = document.getElementById('mzChkTrail');
+    const chkTurbo = document.getElementById('mzChkTurbo');
     const itemCountSel = document.getElementById('mzItemCount');
     const itemLegend = document.getElementById('mzItemLegend');
     const statItemsWrap = document.getElementById('mzStatItemsWrap');
@@ -986,8 +1073,11 @@
     function frame(){
       if(currentMode==='maze'){
         if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
-        drawMaze();
-        drawChart();
+        frameCounter++;
+        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+          drawMaze();
+          drawChart();
+        }
         updateStats();
       }
       requestAnimationFrame(frame);
@@ -1041,6 +1131,7 @@
     chkHeatmap.addEventListener('change', ()=>{ showHeatmap = chkHeatmap.checked; });
     chkPolicy.addEventListener('change', ()=>{ showPolicy = chkPolicy.checked; });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
     function ensureStarted(){
       if(started) return;
@@ -1049,6 +1140,7 @@
       showHeatmap = chkHeatmap.checked;
       showPolicy = chkPolicy.checked;
       showTrail = chkTrail.checked;
+      turboMode = chkTurbo.checked;
       newMaze();
       requestAnimationFrame(frame);
     }
@@ -1057,71 +1149,86 @@
   })();
 
   // =====================================================================
-  // RACE APP
+  // RACE + PARK APP (combined: finish the lap, then park)
   // =====================================================================
-  const RaceApp = (function(){
+  const RaceParkApp = (function(){
     let started = false;
-    const canvas = document.getElementById('raceCanvas');
-    const ctx = canvas.getContext('2d');
-    const chartCanvas = document.getElementById('rcChart');
+    const raceCanvas = document.getElementById('rpRaceCanvas');
+    const raceCtx = raceCanvas.getContext('2d');
+    const parkCanvas = document.getElementById('rpParkCanvas');
+    const parkCtx = parkCanvas.getContext('2d');
+    const chartCanvas = document.getElementById('rpChart');
     const chartCtx = chartCanvas.getContext('2d');
+    const phaseBadge = document.getElementById('rpPhaseBadge');
+    const raceLegend = document.getElementById('rpRaceLegend');
+    const parkLegend = document.getElementById('rpParkLegend');
 
-    const statEpisode = document.getElementById('rcStatEpisode');
-    const statSteps = document.getElementById('rcStatSteps');
-    const statEpsilon = document.getElementById('rcStatEpsilon');
-    const statBest = document.getElementById('rcStatBest');
-    const statSuccess = document.getElementById('rcStatSuccess');
-    const statGoals = document.getElementById('rcStatGoals');
+    const statEpisode = document.getElementById('rpStatEpisode');
+    const statPhase = document.getElementById('rpStatPhase');
+    const statSteps = document.getElementById('rpStatSteps');
+    const statEpsilon = document.getElementById('rpStatEpsilon');
+    const statBest = document.getElementById('rpStatBest');
+    const statSuccess = document.getElementById('rpStatSuccess');
+    const statGoals = document.getElementById('rpStatGoals');
 
-    const btnToggleTrain = document.getElementById('rcBtnToggleTrain');
-    const btnResetQ = document.getElementById('rcBtnResetQ');
-    const btnNewTrack = document.getElementById('rcBtnNewTrack');
-    const sizeSel = document.getElementById('rcSize');
-    const difficultySel = document.getElementById('rcDifficulty');
-    const speedSlider = document.getElementById('rcSpeedSlider');
-    const speedVal = document.getElementById('rcSpeedVal');
-    const chkSensors = document.getElementById('rcChkSensors');
-    const chkTrail = document.getElementById('rcChkTrail');
-    const chkPolicy = document.getElementById('rcChkPolicy');
-    const chkHud = document.getElementById('rcChkHud');
+    const btnToggleTrain = document.getElementById('rpBtnToggleTrain');
+    const btnResetQ = document.getElementById('rpBtnResetQ');
+    const btnNewRound = document.getElementById('rpBtnNewRound');
+    const sizeSel = document.getElementById('rpSize');
+    const difficultySel = document.getElementById('rpDifficulty');
+    const speedSlider = document.getElementById('rpSpeedSlider');
+    const speedVal = document.getElementById('rpSpeedVal');
+    const chkSensors = document.getElementById('rpChkSensors');
+    const chkTrail = document.getElementById('rpChkTrail');
+    const chkTurbo = document.getElementById('rpChkTurbo');
+    const chkPolicy = document.getElementById('rpChkPolicy');
+    const chkHud = document.getElementById('rpChkHud');
 
-    const CANVAS_SIZE = 620;
-    let cx = CANVAS_SIZE/2, cy = CANVAS_SIZE/2;
+    // ---- shared training controls ----
+    let isTraining = false, stepsPerFrame = 10;
+    let turboMode = false, frameCounter = 0;
+    let showSensors = true, showTrail = true, showHud = true, showPolicy = true;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
+
+    // ---- round bookkeeping (a "round" = one full lap attempt + one park attempt) ----
+    let phase = 'race'; // 'race' | 'park'
+    let episode = 0;               // completed rounds (success or fail)
+    let bestRoundSteps = null;     // steps for best *fully successful* round (race+park combined)
+    let fullSuccesses = 0;         // total rounds where both lap + park succeeded
+    let successHistory = [], stepsHistory = [];
+
+    // =========================== RACE PHASE ===========================
+    const RACE_CANVAS_SIZE = 620;
+    let cx = RACE_CANVAS_SIZE/2, cy = RACE_CANVAS_SIZE/2;
     let ringA = 200, ringB = 140, trackHalfWidth = 46;
     let wobbleAmp = 0, wobbleFreq = 3, wobblePhase = 0;
 
-    const SIZE_CFG = {
+    const RACE_SIZE_CFG = {
       small:  {aMin:120,aMax:155,bMin:80, bMax:110},
       medium: {aMin:170,aMax:210,bMin:110,bMax:150},
       large:  {aMin:215,aMax:250,bMin:150,bMax:185}
     };
-    const DIFF_CFG = {
+    const RACE_DIFF_CFG = {
       easy:   {wMin:55, wMax:72, wobbleMax:8,  maxSpeed:2.8, turnRate:0.13, accel:0.16, brake:0.26},
       medium: {wMin:38, wMax:54, wobbleMax:28, maxSpeed:3.6, turnRate:0.10, accel:0.18, brake:0.28},
       hard:   {wMin:22, wMax:34, wobbleMax:52, maxSpeed:4.4, turnRate:0.085,accel:0.20, brake:0.30}
     };
 
-    let ACCEL=0.18, BRAKE=0.28, MAXSPEED=3.6, AMBIENT_FRICTION=0.03, TURN_RATE=0.10;
-    let MAX_STEPS = 1200;
+    let R_ACCEL=0.18, R_BRAKE=0.28, R_MAXSPEED=3.6, R_AMBIENT_FRICTION=0.03, R_TURN_RATE=0.10;
+    let R_MAX_STEPS = 1200;
 
-    let Q = {};
-    let V = {}; // visit counts per (state, action) — lets us tell "actually tried" from "still default 0"
+    let raceQ = {}, raceV = {};
     let car = {x:0,y:0,angle:0,speed:0};
     let prevTheta = 0, angleUnwrapped = 0;
-    let trail = [];
-    let episode = 0, stepsInEpisode = 0;
-    let epsilon = 1.0;
-    const EPS_MIN = 0.05, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
-    let bestSteps = null, lapsCompleted = 0;
-    let successHistory = [], stepsHistory = [];
-    let isTraining = false, stepsPerFrame = 10;
-    let showSensors = true, showTrail = true, showHud = true, showPolicy = true;
-    let lastAction = 0;
+    let raceTrail = [];
+    let raceStepsInEpisode = 0;
+    let raceLastAction = 0;
 
-    const SENSOR_ANGLES = [-70,-35,0,35,70].map(d=>d*Math.PI/180);
-    const SENSOR_MAX = 100, SENSOR_STEP = 6;
-    const ACTIONS = 5;
-    const ACTION_LABELS = ['⬆ האצה','↖ פנייה שמאלה','↗ פנייה ימינה','⏹ בלימה','• האטה חופשית'];
+    const R_SENSOR_ANGLES = [-70,-35,0,35,70].map(d=>d*Math.PI/180);
+    const R_SENSOR_MAX = 100, R_SENSOR_STEP = 6;
+    const R_ACTIONS = 5;
+    const R_ACTION_LABELS = ['⬆ האצה','↖ פנייה שמאלה','↗ פנייה ימינה','⏹ בלימה','• האטה חופשית'];
 
     function trackRadius(theta){
       const ct=Math.cos(theta), st=Math.sin(theta);
@@ -1137,61 +1244,55 @@
     function isOffTrack(x,y){
       return Math.abs(distFromCenterline(x,y).dist) > trackHalfWidth;
     }
-
-    function castRayFrom(x,y,angle,angleOffset){
+    function raceCastRayFrom(x,y,angle,angleOffset){
       const ang = angle + angleOffset;
-      for(let d=SENSOR_STEP; d<=SENSOR_MAX; d+=SENSOR_STEP){
+      for(let d=R_SENSOR_STEP; d<=R_SENSOR_MAX; d+=R_SENSOR_STEP){
         const rx = x + Math.cos(ang)*d;
         const ry = y + Math.sin(ang)*d;
-        if(isOffTrack(rx,ry)) return d - SENSOR_STEP/2;
+        if(isOffTrack(rx,ry)) return d - R_SENSOR_STEP/2;
       }
-      return SENSOR_MAX;
+      return R_SENSOR_MAX;
     }
-    function castRay(angleOffset){ return castRayFrom(car.x, car.y, car.angle, angleOffset); }
+    function raceCastRay(angleOffset){ return raceCastRayFrom(car.x, car.y, car.angle, angleOffset); }
 
-    function bucket(v, maxV, n){ return Math.min(n-1, Math.floor((v/maxV)*n)); }
+    function bucket(v, maxV, n){ return Math.min(n-1, Math.max(0, Math.floor((v/maxV)*n))); }
+    function signedBucket(v, maxV, n){ const t = Math.max(0, Math.min(1, (v+maxV)/(2*maxV))); return Math.min(n-1, Math.floor(t*n)); }
 
-    function getStateFrom(x,y,angle,speed){
-      const sensors = SENSOR_ANGLES.map(a => bucket(castRayFrom(x,y,angle,a), SENSOR_MAX, 4));
-      const speedB = bucket(speed, MAXSPEED, 3);
+    function getRaceStateFrom(x,y,angle,speed){
+      const sensors = R_SENSOR_ANGLES.map(a => bucket(raceCastRayFrom(x,y,angle,a), R_SENSOR_MAX, 4));
+      const speedB = bucket(speed, R_MAXSPEED, 3);
       return sensors.join(',') + '|' + speedB;
     }
-    function getState(){ return getStateFrom(car.x, car.y, car.angle, car.speed); }
+    function getRaceState(){ return getRaceStateFrom(car.x, car.y, car.angle, car.speed); }
 
-    function getQ(state){
-      if(!Q[state]) Q[state] = new Array(ACTIONS).fill(0);
-      return Q[state];
-    }
-    function getV(state){
-      if(!V[state]) V[state] = new Array(ACTIONS).fill(0);
-      return V[state];
-    }
-    function maxQ(state){ return Math.max(...getQ(state)); }
+    function getRaceQ(state){ if(!raceQ[state]) raceQ[state] = new Array(R_ACTIONS).fill(0); return raceQ[state]; }
+    function getRaceV(state){ if(!raceV[state]) raceV[state] = new Array(R_ACTIONS).fill(0); return raceV[state]; }
+    function raceMaxQ(state){ return Math.max(...getRaceQ(state)); }
 
-    function chooseAction(state){
-      if(Math.random() < epsilon) return Math.floor(Math.random()*ACTIONS);
-      const q = getQ(state);
+    function chooseRaceAction(state){
+      if(Math.random() < epsilon) return Math.floor(Math.random()*R_ACTIONS);
+      const q = getRaceQ(state);
       let best=0;
-      for(let i=1;i<ACTIONS;i++) if(q[i] > q[best]) best = i;
+      for(let i=1;i<R_ACTIONS;i++) if(q[i] > q[best]) best = i;
       return best;
     }
 
-    function applyPhysics(action){
-      const turn = TURN_RATE*(0.5+0.5*(car.speed/MAXSPEED));
+    function applyRacePhysics(action){
+      const turn = R_TURN_RATE*(0.5+0.5*(car.speed/R_MAXSPEED));
       switch(action){
-        case 0: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); break;
-        case 1: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); car.angle -= turn; break;
-        case 2: car.speed = Math.min(MAXSPEED, car.speed+ACCEL); car.angle += turn; break;
-        case 3: car.speed = Math.max(0, car.speed-BRAKE); break;
-        case 4: car.speed = Math.max(0, car.speed-AMBIENT_FRICTION); break;
+        case 0: car.speed = Math.min(R_MAXSPEED, car.speed+R_ACCEL); break;
+        case 1: car.speed = Math.min(R_MAXSPEED, car.speed+R_ACCEL); car.angle -= turn; break;
+        case 2: car.speed = Math.min(R_MAXSPEED, car.speed+R_ACCEL); car.angle += turn; break;
+        case 3: car.speed = Math.max(0, car.speed-R_BRAKE); break;
+        case 4: car.speed = Math.max(0, car.speed-R_AMBIENT_FRICTION); break;
       }
-      car.speed = Math.max(0, car.speed - AMBIENT_FRICTION*0.3);
+      car.speed = Math.max(0, car.speed - R_AMBIENT_FRICTION*0.3);
       car.x += Math.cos(car.angle)*car.speed;
       car.y += Math.sin(car.angle)*car.speed;
     }
 
-    function doCarStep(action){
-      applyPhysics(action);
+    function doRaceStep(action){
+      applyRacePhysics(action);
       const {theta, dist} = distFromCenterline(car.x, car.y);
       let delta = theta - prevTheta;
       if(delta > Math.PI) delta -= 2*Math.PI;
@@ -1209,25 +1310,25 @@
         reward += 200;
         done = true;
         success = true;
-      } else if(stepsInEpisode+1 >= MAX_STEPS){
+      } else if(raceStepsInEpisode+1 >= R_MAX_STEPS){
         done = true;
       }
       return {reward, done, success};
     }
 
-    function learnStep(){
-      const state0 = getState();
-      const action = chooseAction(state0);
-      const q = getQ(state0);
-      const v = getV(state0);
-      const {reward, done, success} = doCarStep(action);
-      const state1 = getState();
-      q[action] += ALPHA * (reward + GAMMA*maxQ(state1) - q[action]);
+    function raceLearnStep(){
+      const state0 = getRaceState();
+      const action = chooseRaceAction(state0);
+      const q = getRaceQ(state0);
+      const v = getRaceV(state0);
+      const {reward, done, success} = doRaceStep(action);
+      const state1 = getRaceState();
+      q[action] += ALPHA * (reward + GAMMA*raceMaxQ(state1) - q[action]);
       v[action]++;
-      lastAction = action;
-      stepsInEpisode++;
-      if(showTrail) trail.push({x:car.x, y:car.y, speed:car.speed});
-      if(done) finishEpisode(success);
+      raceLastAction = action;
+      raceStepsInEpisode++;
+      if(showTrail) raceTrail.push({x:car.x, y:car.y, speed:car.speed});
+      if(done) onRacePhaseDone(success);
     }
 
     function resetCar(){
@@ -1241,22 +1342,8 @@
       car.speed = 0;
       prevTheta = theta0;
       angleUnwrapped = 0;
-      trail = [];
-    }
-
-    function finishEpisode(success){
-      episode++;
-      successHistory.push(success?1:0);
-      if(successHistory.length>50) successHistory.shift();
-      stepsHistory.push(success ? stepsInEpisode : MAX_STEPS);
-      if(stepsHistory.length>150) stepsHistory.shift();
-      if(success){
-        lapsCompleted++;
-        if(bestSteps===null || stepsInEpisode < bestSteps) bestSteps = stepsInEpisode;
-      }
-      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
-      stepsInEpisode = 0;
-      resetCar();
+      raceTrail = [];
+      raceStepsInEpisode = 0;
     }
 
     function sampleTrackPoints(radiusOffset, n){
@@ -1272,26 +1359,26 @@
     function drawTrack(){
       const outer = sampleTrackPoints(trackHalfWidth, 160);
       const inner = sampleTrackPoints(-trackHalfWidth, 160);
-      ctx.fillStyle = getCss('--road');
-      ctx.beginPath();
-      outer.forEach((p,i)=> i===0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]));
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = getCss('--bg2');
-      ctx.beginPath();
-      inner.forEach((p,i)=> i===0 ? ctx.moveTo(p[0],p[1]) : ctx.lineTo(p[0],p[1]));
-      ctx.closePath();
-      ctx.fill();
+      raceCtx.fillStyle = getCss('--road');
+      raceCtx.beginPath();
+      outer.forEach((p,i)=> i===0 ? raceCtx.moveTo(p[0],p[1]) : raceCtx.lineTo(p[0],p[1]));
+      raceCtx.closePath();
+      raceCtx.fill();
+      raceCtx.fillStyle = getCss('--bg2');
+      raceCtx.beginPath();
+      inner.forEach((p,i)=> i===0 ? raceCtx.moveTo(p[0],p[1]) : raceCtx.lineTo(p[0],p[1]));
+      raceCtx.closePath();
+      raceCtx.fill();
 
       const rOut = trackRadius(0)+trackHalfWidth, rIn = trackRadius(0)-trackHalfWidth;
-      ctx.strokeStyle = getCss('--curb');
-      ctx.lineWidth = 4;
-      ctx.setLineDash([6,5]);
-      ctx.beginPath();
-      ctx.moveTo(cx+rIn, cy);
-      ctx.lineTo(cx+rOut, cy);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      raceCtx.strokeStyle = getCss('--curb');
+      raceCtx.lineWidth = 4;
+      raceCtx.setLineDash([6,5]);
+      raceCtx.beginPath();
+      raceCtx.moveTo(cx+rIn, cy);
+      raceCtx.lineTo(cx+rOut, cy);
+      raceCtx.stroke();
+      raceCtx.setLineDash([]);
     }
 
     function tangentAt(theta){
@@ -1305,36 +1392,36 @@
 
     function drawDirectionChevrons(){
       const N = 18;
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.lineWidth = 2;
+      raceCtx.strokeStyle = 'rgba(255,255,255,0.18)';
+      raceCtx.lineWidth = 2;
       for(let i=0;i<N;i++){
         const theta = -Math.PI + (i/N)*2*Math.PI;
         const {px, py, heading} = tangentAt(theta);
-        ctx.save();
-        ctx.translate(px,py);
-        ctx.rotate(heading);
-        ctx.beginPath();
-        ctx.moveTo(-6,-7);
-        ctx.lineTo(6,0);
-        ctx.lineTo(-6,7);
-        ctx.stroke();
-        ctx.restore();
+        raceCtx.save();
+        raceCtx.translate(px,py);
+        raceCtx.rotate(heading);
+        raceCtx.beginPath();
+        raceCtx.moveTo(-6,-7);
+        raceCtx.lineTo(6,0);
+        raceCtx.lineTo(-6,7);
+        raceCtx.stroke();
+        raceCtx.restore();
       }
     }
 
-    function drawPolicyHints(){
+    function drawRacePolicyHints(){
       const N = 30;
-      const assumedSpeed = MAXSPEED*0.6;
+      const assumedSpeed = R_MAXSPEED*0.6;
       for(let i=0;i<N;i++){
         const theta = -Math.PI + (i/N)*2*Math.PI;
         const {px, py, heading} = tangentAt(theta);
-        const state = getStateFrom(px, py, heading, assumedSpeed);
-        const q = Q[state];
-        const v = V[state];
+        const state = getRaceStateFrom(px, py, heading, assumedSpeed);
+        const q = raceQ[state];
+        const v = raceV[state];
         if(!q || !v) continue;
         const tried = [];
-        for(let k=0;k<ACTIONS;k++) if(v[k]>0) tried.push(k);
-        if(tried.length===0) continue; // nothing actually tried in this state yet — don't guess
+        for(let k=0;k<R_ACTIONS;k++) if(v[k]>0) tried.push(k);
+        if(tried.length===0) continue;
         let best=tried[0];
         for(const k of tried) if(q[k] > q[best]) best = k;
 
@@ -1345,110 +1432,381 @@
         else if(best===3) color = getCss('--bad');
         else if(best===4) color = getCss('--muted');
 
-        ctx.save();
-        ctx.translate(px,py);
-        ctx.rotate(arrowAngle);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.85;
+        raceCtx.save();
+        raceCtx.translate(px,py);
+        raceCtx.rotate(arrowAngle);
+        raceCtx.fillStyle = color;
+        raceCtx.globalAlpha = 0.85;
         const s=7;
-        ctx.beginPath();
-        ctx.moveTo(s,0);
-        ctx.lineTo(-s*0.55,s*0.55);
-        ctx.lineTo(-s*0.55,-s*0.55);
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.restore();
+        raceCtx.beginPath();
+        raceCtx.moveTo(s,0);
+        raceCtx.lineTo(-s*0.55,s*0.55);
+        raceCtx.lineTo(-s*0.55,-s*0.55);
+        raceCtx.closePath();
+        raceCtx.fill();
+        raceCtx.globalAlpha = 1;
+        raceCtx.restore();
       }
     }
 
-    function speedColor(sp){
-      const t = Math.max(0, Math.min(1, sp/MAXSPEED));
-      const hue = 235 - t*195; // blue -> yellow -> red-ish
+    function speedColor(sp, maxV){
+      const t = Math.max(0, Math.min(1, Math.abs(sp)/maxV));
+      const hue = 235 - t*195;
       return `hsl(${hue}, 85%, 60%)`;
     }
 
-    function drawCar(){
-      if(showTrail && trail.length>1){
-        ctx.lineWidth = 2.4;
-        for(let i=1;i<trail.length;i++){
-          ctx.strokeStyle = speedColor(trail[i].speed);
-          ctx.beginPath();
-          ctx.moveTo(trail[i-1].x, trail[i-1].y);
-          ctx.lineTo(trail[i].x, trail[i].y);
-          ctx.stroke();
+    function drawRaceCar(){
+      if(showTrail && raceTrail.length>1){
+        raceCtx.lineWidth = 2.4;
+        for(let i=1;i<raceTrail.length;i++){
+          raceCtx.strokeStyle = speedColor(raceTrail[i].speed, R_MAXSPEED);
+          raceCtx.beginPath();
+          raceCtx.moveTo(raceTrail[i-1].x, raceTrail[i-1].y);
+          raceCtx.lineTo(raceTrail[i].x, raceTrail[i].y);
+          raceCtx.stroke();
         }
       }
       if(showSensors){
-        ctx.strokeStyle = 'rgba(160,108,255,0.55)';
-        ctx.lineWidth = 1.4;
-        SENSOR_ANGLES.forEach(a=>{
-          const d = castRay(a);
+        raceCtx.strokeStyle = 'rgba(160,108,255,0.55)';
+        raceCtx.lineWidth = 1.4;
+        R_SENSOR_ANGLES.forEach(a=>{
+          const d = raceCastRay(a);
           const ex = car.x + Math.cos(car.angle+a)*d;
           const ey = car.y + Math.sin(car.angle+a)*d;
-          ctx.beginPath();
-          ctx.moveTo(car.x,car.y);
-          ctx.lineTo(ex,ey);
-          ctx.stroke();
+          raceCtx.beginPath();
+          raceCtx.moveTo(car.x,car.y);
+          raceCtx.lineTo(ex,ey);
+          raceCtx.stroke();
         });
       }
-      ctx.save();
-      ctx.translate(car.x, car.y);
-      ctx.rotate(car.angle);
-      ctx.fillStyle = getCss('--agent');
-      ctx.beginPath();
-      ctx.moveTo(10,0);
-      ctx.lineTo(-7,6);
-      ctx.lineTo(-7,-6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#00000055';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-      ctx.restore();
+      raceCtx.save();
+      raceCtx.translate(car.x, car.y);
+      raceCtx.rotate(car.angle);
+      raceCtx.fillStyle = getCss('--agent');
+      raceCtx.beginPath();
+      raceCtx.moveTo(10,0);
+      raceCtx.lineTo(-7,6);
+      raceCtx.lineTo(-7,-6);
+      raceCtx.closePath();
+      raceCtx.fill();
+      raceCtx.strokeStyle = '#00000055';
+      raceCtx.lineWidth = 1.2;
+      raceCtx.stroke();
+      raceCtx.restore();
     }
 
-    function drawHud(){
+    function drawRaceHud(){
       const x=14, y=14, w=150, h=14, gap=8;
-      ctx.font = '11px Rubik, sans-serif';
-      ctx.textAlign = 'left';
+      raceCtx.font = '11px Rubik, sans-serif';
+      raceCtx.textAlign = 'left';
 
-      // speed bar
-      ctx.fillStyle = 'rgba(21,24,36,0.75)';
-      ctx.fillRect(x-6,y-6,w+12,h+16+gap+h+16+gap+22);
-      ctx.fillStyle = getCss('--muted');
-      ctx.fillText('מהירות', x, y+h+2);
-      ctx.strokeStyle = getCss('--border');
-      ctx.strokeRect(x,y,w,h);
-      const spT = Math.max(0,Math.min(1,car.speed/MAXSPEED));
-      ctx.fillStyle = speedColor(car.speed);
-      ctx.fillRect(x,y,w*spT,h);
+      raceCtx.fillStyle = 'rgba(21,24,36,0.75)';
+      raceCtx.fillRect(x-6,y-6,w+12,h+16+gap+h+16+gap+22);
+      raceCtx.fillStyle = getCss('--muted');
+      raceCtx.fillText('מהירות', x, y+h+2);
+      raceCtx.strokeStyle = getCss('--border');
+      raceCtx.strokeRect(x,y,w,h);
+      const spT = Math.max(0,Math.min(1,car.speed/R_MAXSPEED));
+      raceCtx.fillStyle = speedColor(car.speed, R_MAXSPEED);
+      raceCtx.fillRect(x,y,w*spT,h);
 
-      // lap progress
       const y2 = y+h+16+gap;
-      ctx.fillStyle = getCss('--muted');
-      ctx.fillText('התקדמות בהקפה', x, y2+h+2);
-      ctx.strokeStyle = getCss('--border');
-      ctx.strokeRect(x,y2,w,h);
+      raceCtx.fillStyle = getCss('--muted');
+      raceCtx.fillText('התקדמות בהקפה', x, y2+h+2);
+      raceCtx.strokeStyle = getCss('--border');
+      raceCtx.strokeRect(x,y2,w,h);
       const lapT = Math.max(0,Math.min(1, angleUnwrapped/(Math.PI*2)));
-      ctx.fillStyle = getCss('--accent2');
-      ctx.fillRect(x,y2,w*lapT,h);
+      raceCtx.fillStyle = getCss('--accent2');
+      raceCtx.fillRect(x,y2,w*lapT,h);
 
-      // last action
       const y3 = y2+h+16+gap;
-      ctx.fillStyle = getCss('--muted');
-      ctx.fillText('פעולה אחרונה:', x, y3);
-      ctx.fillStyle = getCss('--text');
-      ctx.fillText(ACTION_LABELS[lastAction], x, y3+15);
+      raceCtx.fillStyle = getCss('--muted');
+      raceCtx.fillText('פעולה אחרונה:', x, y3);
+      raceCtx.fillStyle = getCss('--text');
+      raceCtx.fillText(R_ACTION_LABELS[raceLastAction], x, y3+15);
     }
 
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+    function drawRace(){
+      raceCtx.clearRect(0,0,raceCanvas.width,raceCanvas.height);
       drawTrack();
       drawDirectionChevrons();
-      if(showPolicy) drawPolicyHints();
-      drawCar();
-      if(showHud) drawHud();
+      if(showPolicy) drawRacePolicyHints();
+      drawRaceCar();
+      if(showHud) drawRaceHud();
+    }
+
+    // =========================== PARK PHASE ===========================
+    const PARK_SIZE_CFG = {
+      small:  {W:460, H:340, spots:4},
+      medium: {W:560, H:400, spots:5},
+      large:  {W:640, H:460, spots:6}
+    };
+    const PARK_DIFF_CFG = {
+      easy:   {marginFrac:0.24, maxFwd:2.2, maxRev:1.6, turnRate:0.11,  accel:0.14, brake:0.22},
+      medium: {marginFrac:0.13, maxFwd:2.6, maxRev:1.8, turnRate:0.095, accel:0.16, brake:0.24},
+      hard:   {marginFrac:0.045,maxFwd:3.0, maxRev:2.0, turnRate:0.085, accel:0.18, brake:0.26}
+    };
+
+    let LOT_W=560, LOT_H=400, LANE_H=90, nSpots=5, spotW=112, spotsTop=90, spotsBottom=380, spotH=290;
+    let obstacles = [], goalSpot = {x:0,y:0,w:0,h:0};
+    let CAR_R = 8;
+    let P_MAXFWD=2.6, P_MAXREV=1.8, P_TURN_RATE=0.095, P_ACCEL=0.16, P_BRAKE=0.24;
+    const P_AMBIENT_FRICTION = 0.03;
+    let P_MAX_STEPS = 900;
+
+    let parkQ = {}, parkV = {};
+    let pcar = {x:0,y:0,angle:0,speed:0};
+    let startX=30, startY=45;
+    let parkTrail = [];
+    let parkStepsInEpisode = 0;
+    let parkLastAction = 0;
+
+    const P_SENSOR_ANGLES = [-135,-45,0,45,135].map(d=>d*Math.PI/180);
+    const P_SENSOR_MAX = 140, P_SENSOR_STEP = 6;
+    const P_ACTIONS = 6;
+    const P_ACTION_LABELS = ['⬆ קדימה','↖ קדימה-שמאלה','↗ קדימה-ימינה','⬇ אחורה','⏹ בלימה','• האטה חופשית'];
+
+    function isBlocked(x,y){
+      if(x-CAR_R<0 || x+CAR_R>LOT_W || y-CAR_R<0 || y+CAR_R>LOT_H) return true;
+      for(const o of obstacles){
+        if(x>o.x-CAR_R && x<o.x+o.w+CAR_R && y>o.y-CAR_R && y<o.y+o.h+CAR_R) return true;
+      }
+      return false;
+    }
+
+    function parkCastRayFrom(x,y,angle,angleOffset){
+      const ang = angle+angleOffset;
+      for(let d=P_SENSOR_STEP; d<=P_SENSOR_MAX; d+=P_SENSOR_STEP){
+        const rx = x+Math.cos(ang)*d, ry = y+Math.sin(ang)*d;
+        if(isBlocked(rx,ry)) return d-P_SENSOR_STEP/2;
+      }
+      return P_SENSOR_MAX;
+    }
+    function parkCastRay(angleOffset){ return parkCastRayFrom(pcar.x,pcar.y,pcar.angle,angleOffset); }
+
+    function getParkStateFrom(x,y,angle,speed){
+      const sensors = P_SENSOR_ANGLES.map(a=>bucket(parkCastRayFrom(x,y,angle,a), P_SENSOR_MAX, 4));
+      const gcx = goalSpot.x+goalSpot.w/2, gcy = goalSpot.y+goalSpot.h/2;
+      const latB = signedBucket(gcx-x, LOT_W/2, 5);
+      const fwdB = signedBucket(gcy-y, LOT_H/2, 5);
+      const headB = bucket(Math.abs(Math.cos(angle)), 1, 4);
+      const spdB = signedBucket(speed, Math.max(P_MAXFWD,P_MAXREV), 5);
+      return sensors.join(',')+'|'+latB+','+fwdB+','+headB+'|'+spdB;
+    }
+    function getParkState(){ return getParkStateFrom(pcar.x,pcar.y,pcar.angle,pcar.speed); }
+
+    function getParkQ(state){ if(!parkQ[state]) parkQ[state]=new Array(P_ACTIONS).fill(0); return parkQ[state]; }
+    function getParkV(state){ if(!parkV[state]) parkV[state]=new Array(P_ACTIONS).fill(0); return parkV[state]; }
+    function parkMaxQ(state){ return Math.max(...getParkQ(state)); }
+
+    function chooseParkAction(state){
+      if(Math.random()<epsilon) return Math.floor(Math.random()*P_ACTIONS);
+      const q = getParkQ(state);
+      let best=0;
+      for(let i=1;i<P_ACTIONS;i++) if(q[i]>q[best]) best=i;
+      return best;
+    }
+
+    function applyParkPhysics(action){
+      switch(action){
+        case 0: pcar.speed = Math.min(P_MAXFWD, pcar.speed+P_ACCEL); break;
+        case 1: pcar.speed = Math.min(P_MAXFWD, pcar.speed+P_ACCEL*0.6); pcar.angle -= P_TURN_RATE*(pcar.speed>=0?1:-1); break;
+        case 2: pcar.speed = Math.min(P_MAXFWD, pcar.speed+P_ACCEL*0.6); pcar.angle += P_TURN_RATE*(pcar.speed>=0?1:-1); break;
+        case 3: pcar.speed = Math.max(-P_MAXREV, pcar.speed-P_ACCEL); break;
+        case 4: pcar.speed = pcar.speed>0 ? Math.max(0,pcar.speed-P_BRAKE) : Math.min(0,pcar.speed+P_BRAKE); break;
+        case 5: pcar.speed *= (1-P_AMBIENT_FRICTION*3); break;
+      }
+      pcar.speed *= (1-P_AMBIENT_FRICTION*0.3);
+      pcar.x += Math.cos(pcar.angle)*pcar.speed;
+      pcar.y += Math.sin(pcar.angle)*pcar.speed;
+    }
+
+    function doParkStep(action){
+      const gcx=goalSpot.x+goalSpot.w/2, gcy=goalSpot.y+goalSpot.h/2;
+      const prevDist = Math.hypot(pcar.x-gcx, pcar.y-gcy);
+      applyParkPhysics(action);
+      const newDist = Math.hypot(pcar.x-gcx, pcar.y-gcy);
+      let reward = (prevDist-newDist)*1.2 - 0.05;
+      let done=false, success=false;
+      if(isBlocked(pcar.x,pcar.y)){
+        reward = -50; done = true;
+      } else {
+        const margin = CAR_R*0.4;
+        const inGoalX = pcar.x>goalSpot.x+margin && pcar.x<goalSpot.x+goalSpot.w-margin;
+        const inGoalY = pcar.y>goalSpot.y+margin && pcar.y<goalSpot.y+goalSpot.h-margin;
+        const headingOk = Math.abs(Math.cos(pcar.angle)) < 0.28;
+        const stillOk = Math.abs(pcar.speed) < 0.15;
+        if(inGoalX && inGoalY && headingOk && stillOk){
+          reward += 200; done = true; success = true;
+        } else if(parkStepsInEpisode+1 >= P_MAX_STEPS){
+          done = true;
+        }
+      }
+      return {reward, done, success};
+    }
+
+    function parkLearnStep(){
+      const state0 = getParkState();
+      const action = chooseParkAction(state0);
+      const q = getParkQ(state0);
+      const v = getParkV(state0);
+      const {reward, done, success} = doParkStep(action);
+      const state1 = getParkState();
+      q[action] += ALPHA * (reward + GAMMA*parkMaxQ(state1) - q[action]);
+      v[action]++;
+      parkLastAction = action;
+      parkStepsInEpisode++;
+      if(showTrail) parkTrail.push({x:pcar.x, y:pcar.y, speed:pcar.speed});
+      if(done) onParkPhaseDone(success);
+    }
+
+    function resetParkCar(){
+      pcar.x = startX; pcar.y = startY; pcar.angle = 0; pcar.speed = 0;
+      parkTrail = [];
+      parkStepsInEpisode = 0;
+    }
+
+    function drawLot(){
+      parkCtx.clearRect(0,0,LOT_W,LOT_H);
+      parkCtx.fillStyle = getCss('--bg2');
+      parkCtx.fillRect(0,0,LOT_W,LOT_H);
+      parkCtx.fillStyle = 'rgba(255,255,255,0.03)';
+      parkCtx.fillRect(0,0,LOT_W,LANE_H);
+      parkCtx.strokeStyle = getCss('--border');
+      parkCtx.setLineDash([5,5]);
+      parkCtx.beginPath(); parkCtx.moveTo(0,LANE_H); parkCtx.lineTo(LOT_W,LANE_H); parkCtx.stroke();
+      for(let i=1;i<nSpots;i++){
+        const x = i*spotW;
+        parkCtx.beginPath(); parkCtx.moveTo(x,spotsTop); parkCtx.lineTo(x,spotsBottom); parkCtx.stroke();
+      }
+      parkCtx.setLineDash([]);
+
+      parkCtx.fillStyle = getCss('--good');
+      parkCtx.globalAlpha = 0.18;
+      parkCtx.fillRect(goalSpot.x, goalSpot.y, goalSpot.w, goalSpot.h);
+      parkCtx.globalAlpha = 1;
+      parkCtx.strokeStyle = getCss('--good');
+      parkCtx.lineWidth = 2;
+      parkCtx.setLineDash([6,4]);
+      parkCtx.strokeRect(goalSpot.x+2, goalSpot.y+2, goalSpot.w-4, goalSpot.h-4);
+      parkCtx.setLineDash([]);
+
+      parkCtx.fillStyle = getCss('--wall');
+      obstacles.forEach(o=>{
+        parkCtx.beginPath();
+        parkCtx.roundRect ? parkCtx.roundRect(o.x,o.y,o.w,o.h,4) : parkCtx.rect(o.x,o.y,o.w,o.h);
+        parkCtx.fill();
+      });
+
+      if(showTrail && parkTrail.length>1){
+        parkCtx.lineWidth = 2.2;
+        for(let i=1;i<parkTrail.length;i++){
+          parkCtx.strokeStyle = speedColor(parkTrail[i].speed, Math.max(P_MAXFWD,P_MAXREV));
+          parkCtx.beginPath();
+          parkCtx.moveTo(parkTrail[i-1].x, parkTrail[i-1].y);
+          parkCtx.lineTo(parkTrail[i].x, parkTrail[i].y);
+          parkCtx.stroke();
+        }
+      }
+
+      if(showSensors){
+        parkCtx.strokeStyle = 'rgba(160,108,255,0.55)';
+        parkCtx.lineWidth = 1.3;
+        P_SENSOR_ANGLES.forEach(a=>{
+          const d = parkCastRay(a);
+          const ex = pcar.x+Math.cos(pcar.angle+a)*d, ey = pcar.y+Math.sin(pcar.angle+a)*d;
+          parkCtx.beginPath(); parkCtx.moveTo(pcar.x,pcar.y); parkCtx.lineTo(ex,ey); parkCtx.stroke();
+        });
+      }
+
+      parkCtx.save();
+      parkCtx.translate(pcar.x, pcar.y);
+      parkCtx.rotate(pcar.angle);
+      parkCtx.fillStyle = getCss('--agent');
+      parkCtx.beginPath();
+      parkCtx.moveTo(10,0); parkCtx.lineTo(-7,6); parkCtx.lineTo(-7,-6); parkCtx.closePath();
+      parkCtx.fill();
+      parkCtx.strokeStyle = '#00000055'; parkCtx.lineWidth=1.2; parkCtx.stroke();
+      parkCtx.restore();
+
+      if(showHud) drawParkHud();
+    }
+
+    function drawParkHud(){
+      const x=14,y=14,w=150,h=14,gap=8;
+      parkCtx.font = '11px Rubik, sans-serif';
+      parkCtx.textAlign = 'left';
+      parkCtx.fillStyle = 'rgba(21,24,36,0.75)';
+      parkCtx.fillRect(x-6,y-6,w+12, h+16+gap+22);
+      parkCtx.fillStyle = getCss('--muted');
+      parkCtx.fillText('מהירות (קדימה / אחורה)', x, y+h+2);
+      parkCtx.strokeStyle = getCss('--border');
+      parkCtx.strokeRect(x,y,w,h);
+      parkCtx.beginPath(); parkCtx.moveTo(x+w/2,y); parkCtx.lineTo(x+w/2,y+h); parkCtx.strokeStyle=getCss('--border'); parkCtx.stroke();
+      const t = Math.max(-1,Math.min(1, pcar.speed/Math.max(P_MAXFWD,P_MAXREV)));
+      parkCtx.fillStyle = speedColor(pcar.speed, Math.max(P_MAXFWD,P_MAXREV));
+      if(t>=0) parkCtx.fillRect(x+w/2, y, (w/2)*t, h);
+      else parkCtx.fillRect(x+w/2+(w/2)*t, y, -(w/2)*t, h);
+
+      const y3 = y+h+16+gap;
+      parkCtx.fillStyle = getCss('--muted');
+      parkCtx.fillText('פעולה אחרונה:', x, y3);
+      parkCtx.fillStyle = getCss('--text');
+      parkCtx.fillText(P_ACTION_LABELS[parkLastAction], x, y3+15);
+    }
+
+    // =========================== PHASE ORCHESTRATION ===========================
+    function setPhase(p){
+      phase = p;
+      const isRace = phase==='race';
+      raceCanvas.style.display = isRace ? 'block' : 'none';
+      parkCanvas.style.display = isRace ? 'none' : 'block';
+      raceLegend.style.display = isRace ? 'flex' : 'none';
+      parkLegend.style.display = isRace ? 'none' : 'flex';
+      phaseBadge.textContent = isRace ? '🏁 שלב נוכחי: מרוץ' : '🅿️ שלב נוכחי: חניה';
+      statPhase.textContent = isRace ? 'מרוץ' : 'חניה';
+      frameCounter = 0;
+    }
+
+    function onRacePhaseDone(success){
+      if(success){
+        // lap complete: pull into the parking bay for phase 2 of this round
+        resetParkCar();
+        setPhase('park');
+      } else {
+        finishRound(false, raceStepsInEpisode);
+      }
+    }
+
+    function onParkPhaseDone(success){
+      const totalSteps = raceStepsInEpisode + parkStepsInEpisode;
+      finishRound(success, totalSteps);
+    }
+
+    function finishRound(success, totalSteps){
+      episode++;
+      successHistory.push(success?1:0);
+      if(successHistory.length>50) successHistory.shift();
+      const combinedCap = R_MAX_STEPS + P_MAX_STEPS;
+      stepsHistory.push(success ? totalSteps : combinedCap);
+      if(stepsHistory.length>150) stepsHistory.shift();
+      if(success){
+        fullSuccesses++;
+        if(bestRoundSteps===null || totalSteps < bestRoundSteps) bestRoundSteps = totalSteps;
+      }
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      resetCar();
+      setPhase('race');
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statSteps.textContent = phase==='race' ? raceStepsInEpisode : parkStepsInEpisode;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestRoundSteps===null ? '–' : bestRoundSteps;
+      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
+      statSuccess.textContent = rate+'%';
+      statGoals.textContent = fullSuccesses;
     }
 
     function drawChart(){
@@ -1471,56 +1829,84 @@
       chartCtx.stroke();
     }
 
-    function updateStats(){
-      statEpisode.textContent = episode;
-      statSteps.textContent = stepsInEpisode;
-      statEpsilon.textContent = epsilon.toFixed(2);
-      statBest.textContent = bestSteps===null ? '–' : bestSteps;
-      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
-      statSuccess.textContent = rate+'%';
-      statGoals.textContent = lapsCompleted;
-    }
-
     function frame(){
-      if(currentMode==='race'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
-        draw();
-        drawChart();
+      if(currentMode==='racepark'){
+        if(isTraining){
+          for(let i=0;i<stepsPerFrame;i++){
+            if(phase==='race') raceLearnStep(); else parkLearnStep();
+          }
+        }
+        frameCounter++;
+        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+          if(phase==='race') drawRace(); else drawLot();
+          drawChart();
+        }
         updateStats();
       }
       requestAnimationFrame(frame);
     }
 
-    function newTrack(){
-      const sz = SIZE_CFG[sizeSel.value] || SIZE_CFG.medium;
-      const diff = DIFF_CFG[difficultySel.value] || DIFF_CFG.medium;
+    function newRound(){
+      const sz = sizeSel.value;
+      const diff = difficultySel.value;
+      const rSz = RACE_SIZE_CFG[sz] || RACE_SIZE_CFG.medium;
+      const rDiff = RACE_DIFF_CFG[diff] || RACE_DIFF_CFG.medium;
+      const pSz = PARK_SIZE_CFG[sz] || PARK_SIZE_CFG.medium;
+      const pDiff = PARK_DIFF_CFG[diff] || PARK_DIFF_CFG.medium;
 
-      ringA = sz.aMin + Math.random()*(sz.aMax-sz.aMin);
-      ringB = sz.bMin + Math.random()*(sz.bMax-sz.bMin);
-      trackHalfWidth = diff.wMin + Math.random()*(diff.wMax-diff.wMin);
-      wobbleAmp = Math.random()*diff.wobbleMax;
+      // --- race track ---
+      ringA = rSz.aMin + Math.random()*(rSz.aMax-rSz.aMin);
+      ringB = rSz.bMin + Math.random()*(rSz.bMax-rSz.bMin);
+      trackHalfWidth = rDiff.wMin + Math.random()*(rDiff.wMax-rDiff.wMin);
+      wobbleAmp = Math.random()*rDiff.wobbleMax;
       wobbleFreq = 2 + Math.floor(Math.random()*3);
       wobblePhase = Math.random()*Math.PI*2;
+      R_MAXSPEED = rDiff.maxSpeed; R_TURN_RATE = rDiff.turnRate;
+      R_ACCEL = rDiff.accel; R_BRAKE = rDiff.brake;
+      R_MAX_STEPS = Math.round((ringA+ringB)*7);
+      raceCanvas.width = RACE_CANVAS_SIZE; raceCanvas.height = RACE_CANVAS_SIZE;
+      cx = RACE_CANVAS_SIZE/2; cy = RACE_CANVAS_SIZE/2;
 
-      MAXSPEED = diff.maxSpeed;
-      TURN_RATE = diff.turnRate;
-      ACCEL = diff.accel;
-      BRAKE = diff.brake;
-      MAX_STEPS = Math.round((ringA+ringB)*7);
+      // --- parking lot ---
+      LOT_W = pSz.W; LOT_H = pSz.H; nSpots = pSz.spots;
+      LANE_H = 90;
+      spotW = LOT_W/nSpots;
+      spotsTop = LANE_H;
+      spotsBottom = LOT_H-20;
+      spotH = spotsBottom-spotsTop;
+      P_MAXFWD = pDiff.maxFwd; P_MAXREV = pDiff.maxRev;
+      P_TURN_RATE = pDiff.turnRate; P_ACCEL = pDiff.accel; P_BRAKE = pDiff.brake;
+      P_MAX_STEPS = Math.round((LOT_W+LOT_H)*1.6);
+      const goalIdx = 1 + Math.floor(Math.random()*(nSpots-2));
+      obstacles = [];
+      for(let i=0;i<nSpots;i++){
+        if(i===goalIdx) continue;
+        const margin = spotW*pDiff.marginFrac;
+        const carW = spotW-2*margin, carH = spotH*0.82;
+        obstacles.push({ x:i*spotW+margin, y:spotsTop+(spotH-carH)/2, w:carW, h:carH });
+      }
+      goalSpot = { x:goalIdx*spotW, y:spotsTop, w:spotW, h:spotH };
+      startX = Math.min(30, LOT_W*0.08);
+      startY = LANE_H/2;
+      parkCanvas.width = LOT_W; parkCanvas.height = LOT_H;
 
-      Q = {}; V = {};
-      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
-      bestSteps = null; lapsCompleted = 0;
+      raceQ = {}; raceV = {}; parkQ = {}; parkV = {};
+      episode = 0; epsilon = 1.0;
+      bestRoundSteps = null; fullSuccesses = 0;
       successHistory = []; stepsHistory = [];
       resetCar();
+      resetParkCar();
+      setPhase('race');
     }
 
     function resetLearning(){
-      Q = {}; V = {};
-      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
-      bestSteps = null; lapsCompleted = 0;
+      raceQ = {}; raceV = {}; parkQ = {}; parkV = {};
+      episode = 0; epsilon = 1.0;
+      bestRoundSteps = null; fullSuccesses = 0;
       successHistory = []; stepsHistory = [];
       resetCar();
+      resetParkCar();
+      setPhase('race');
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -1528,427 +1914,35 @@
       btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
     });
     btnResetQ.addEventListener('click', resetLearning);
-    btnNewTrack.addEventListener('click', newTrack);
-    sizeSel.addEventListener('change', newTrack);
-    difficultySel.addEventListener('change', newTrack);
+    btnNewRound.addEventListener('click', newRound);
+    sizeSel.addEventListener('change', newRound);
+    difficultySel.addEventListener('change', newRound);
     speedSlider.addEventListener('input', ()=>{
       stepsPerFrame = parseInt(speedSlider.value,10);
       speedVal.textContent = stepsPerFrame;
     });
     chkSensors.addEventListener('change', ()=>{ showSensors = chkSensors.checked; });
-    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail){ raceTrail=[]; parkTrail=[]; } });
+    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
     chkPolicy.addEventListener('change', ()=>{ showPolicy = chkPolicy.checked; });
     chkHud.addEventListener('change', ()=>{ showHud = chkHud.checked; });
 
     function ensureStarted(){
       if(started) return;
       started = true;
-      canvas.width = CANVAS_SIZE;
-      canvas.height = CANVAS_SIZE;
-      cx = CANVAS_SIZE/2; cy = CANVAS_SIZE/2;
       stepsPerFrame = parseInt(speedSlider.value,10);
       showSensors = chkSensors.checked;
       showTrail = chkTrail.checked;
+      turboMode = chkTurbo.checked;
       showPolicy = chkPolicy.checked;
       showHud = chkHud.checked;
-      newTrack();
+      newRound();
       requestAnimationFrame(frame);
     }
 
     return { ensureStarted };
   })();
 
-  // =====================================================================
-  // PARK APP
-  // =====================================================================
-  const ParkApp = (function(){
-    let started = false;
-    const canvas = document.getElementById('parkCanvas');
-    const ctx = canvas.getContext('2d');
-    const chartCanvas = document.getElementById('pkChart');
-    const chartCtx = chartCanvas.getContext('2d');
-
-    const statEpisode = document.getElementById('pkStatEpisode');
-    const statSteps = document.getElementById('pkStatSteps');
-    const statEpsilon = document.getElementById('pkStatEpsilon');
-    const statBest = document.getElementById('pkStatBest');
-    const statSuccess = document.getElementById('pkStatSuccess');
-    const statGoals = document.getElementById('pkStatGoals');
-
-    const btnToggleTrain = document.getElementById('pkBtnToggleTrain');
-    const btnResetQ = document.getElementById('pkBtnResetQ');
-    const btnNewLot = document.getElementById('pkBtnNewLot');
-    const sizeSel = document.getElementById('pkSize');
-    const difficultySel = document.getElementById('pkDifficulty');
-    const speedSlider = document.getElementById('pkSpeedSlider');
-    const speedVal = document.getElementById('pkSpeedVal');
-    const chkSensors = document.getElementById('pkChkSensors');
-    const chkTrail = document.getElementById('pkChkTrail');
-    const chkHud = document.getElementById('pkChkHud');
-
-    const SIZE_CFG = {
-      small:  {W:460, H:340, spots:4},
-      medium: {W:560, H:400, spots:5},
-      large:  {W:640, H:460, spots:6}
-    };
-    const DIFF_CFG = {
-      easy:   {marginFrac:0.24, maxFwd:2.2, maxRev:1.6, turnRate:0.11,  accel:0.14, brake:0.22},
-      medium: {marginFrac:0.13, maxFwd:2.6, maxRev:1.8, turnRate:0.095, accel:0.16, brake:0.24},
-      hard:   {marginFrac:0.045,maxFwd:3.0, maxRev:2.0, turnRate:0.085, accel:0.18, brake:0.26}
-    };
-
-    let LOT_W=560, LOT_H=400, LANE_H=90, nSpots=5, spotW=112, spotsTop=90, spotsBottom=380, spotH=290;
-    let obstacles = [], goalSpot = {x:0,y:0,w:0,h:0};
-    let CAR_R = 8;
-    let MAXFWD=2.6, MAXREV=1.8, TURN_RATE=0.095, ACCEL=0.16, BRAKE=0.24;
-    const AMBIENT_FRICTION = 0.03;
-    let MAX_STEPS = 900;
-
-    let Q = {};
-    let V = {}; // visit counts per (state, action) — lets us tell "actually tried" from "still default 0"
-    let car = {x:0,y:0,angle:0,speed:0};
-    let startX=30, startY=45;
-    let trail = [];
-    let episode=0, stepsInEpisode=0, epsilon=1.0;
-    const EPS_MIN=0.05, EPS_DECAY=0.992, ALPHA=0.2, GAMMA=0.97;
-    let bestSteps=null, parksCompleted=0;
-    let successHistory=[], stepsHistory=[];
-    let isTraining=false, stepsPerFrame=10;
-    let showSensors=true, showTrail=true, showHud=true;
-    let lastAction=0;
-
-    const SENSOR_ANGLES = [-135,-45,0,45,135].map(d=>d*Math.PI/180);
-    const SENSOR_MAX = 140, SENSOR_STEP = 6;
-    const ACTIONS = 6;
-    const ACTION_LABELS = ['⬆ קדימה','↖ קדימה-שמאלה','↗ קדימה-ימינה','⬇ אחורה','⏹ בלימה','• האטה חופשית'];
-
-    function bucket(v, maxV, n){ return Math.min(n-1, Math.max(0, Math.floor((v/maxV)*n))); }
-    function signedBucket(v, maxV, n){ const t = Math.max(0, Math.min(1, (v+maxV)/(2*maxV))); return Math.min(n-1, Math.floor(t*n)); }
-
-    function isBlocked(x,y){
-      if(x-CAR_R<0 || x+CAR_R>LOT_W || y-CAR_R<0 || y+CAR_R>LOT_H) return true;
-      for(const o of obstacles){
-        if(x>o.x-CAR_R && x<o.x+o.w+CAR_R && y>o.y-CAR_R && y<o.y+o.h+CAR_R) return true;
-      }
-      return false;
-    }
-
-    function castRayFrom(x,y,angle,angleOffset){
-      const ang = angle+angleOffset;
-      for(let d=SENSOR_STEP; d<=SENSOR_MAX; d+=SENSOR_STEP){
-        const rx = x+Math.cos(ang)*d, ry = y+Math.sin(ang)*d;
-        if(isBlocked(rx,ry)) return d-SENSOR_STEP/2;
-      }
-      return SENSOR_MAX;
-    }
-    function castRay(angleOffset){ return castRayFrom(car.x,car.y,car.angle,angleOffset); }
-
-    function getStateFrom(x,y,angle,speed){
-      const sensors = SENSOR_ANGLES.map(a=>bucket(castRayFrom(x,y,angle,a), SENSOR_MAX, 4));
-      const gcx = goalSpot.x+goalSpot.w/2, gcy = goalSpot.y+goalSpot.h/2;
-      const latB = signedBucket(gcx-x, LOT_W/2, 5);
-      const fwdB = signedBucket(gcy-y, LOT_H/2, 5);
-      const headB = bucket(Math.abs(Math.cos(angle)), 1, 4); // 0 = facing vertically (aligned with spot), 3 = facing horizontally
-      const spdB = signedBucket(speed, Math.max(MAXFWD,MAXREV), 5);
-      return sensors.join(',')+'|'+latB+','+fwdB+','+headB+'|'+spdB;
-    }
-    function getState(){ return getStateFrom(car.x,car.y,car.angle,car.speed); }
-
-    function getQ(state){ if(!Q[state]) Q[state]=new Array(ACTIONS).fill(0); return Q[state]; }
-    function getV(state){ if(!V[state]) V[state]=new Array(ACTIONS).fill(0); return V[state]; }
-    function maxQ(state){ return Math.max(...getQ(state)); }
-
-    function chooseAction(state){
-      if(Math.random()<epsilon) return Math.floor(Math.random()*ACTIONS);
-      const q = getQ(state);
-      let best=0;
-      for(let i=1;i<ACTIONS;i++) if(q[i]>q[best]) best=i;
-      return best;
-    }
-
-    function applyPhysics(action){
-      switch(action){
-        case 0: car.speed = Math.min(MAXFWD, car.speed+ACCEL); break;
-        case 1: car.speed = Math.min(MAXFWD, car.speed+ACCEL*0.6); car.angle -= TURN_RATE*(car.speed>=0?1:-1); break;
-        case 2: car.speed = Math.min(MAXFWD, car.speed+ACCEL*0.6); car.angle += TURN_RATE*(car.speed>=0?1:-1); break;
-        case 3: car.speed = Math.max(-MAXREV, car.speed-ACCEL); break;
-        case 4: car.speed = car.speed>0 ? Math.max(0,car.speed-BRAKE) : Math.min(0,car.speed+BRAKE); break;
-        case 5: car.speed *= (1-AMBIENT_FRICTION*3); break;
-      }
-      car.speed *= (1-AMBIENT_FRICTION*0.3);
-      car.x += Math.cos(car.angle)*car.speed;
-      car.y += Math.sin(car.angle)*car.speed;
-    }
-
-    function doCarStep(action){
-      const gcx=goalSpot.x+goalSpot.w/2, gcy=goalSpot.y+goalSpot.h/2;
-      const prevDist = Math.hypot(car.x-gcx, car.y-gcy);
-      applyPhysics(action);
-      const newDist = Math.hypot(car.x-gcx, car.y-gcy);
-      let reward = (prevDist-newDist)*1.2 - 0.05;
-      let done=false, success=false;
-      if(isBlocked(car.x,car.y)){
-        reward = -50; done = true;
-      } else {
-        const margin = CAR_R*0.4;
-        const inGoalX = car.x>goalSpot.x+margin && car.x<goalSpot.x+goalSpot.w-margin;
-        const inGoalY = car.y>goalSpot.y+margin && car.y<goalSpot.y+goalSpot.h-margin;
-        const headingOk = Math.abs(Math.cos(car.angle)) < 0.28;
-        const stillOk = Math.abs(car.speed) < 0.15;
-        if(inGoalX && inGoalY && headingOk && stillOk){
-          reward += 200; done = true; success = true;
-        } else if(stepsInEpisode+1 >= MAX_STEPS){
-          done = true;
-        }
-      }
-      return {reward, done, success};
-    }
-
-    function learnStep(){
-      const state0 = getState();
-      const action = chooseAction(state0);
-      const q = getQ(state0);
-      const v = getV(state0);
-      const {reward, done, success} = doCarStep(action);
-      const state1 = getState();
-      q[action] += ALPHA * (reward + GAMMA*maxQ(state1) - q[action]);
-      v[action]++;
-      lastAction = action;
-      stepsInEpisode++;
-      if(showTrail) trail.push({x:car.x, y:car.y, speed:car.speed});
-      if(done) finishEpisode(success);
-    }
-
-    function resetCar(){
-      car.x = startX; car.y = startY; car.angle = 0; car.speed = 0;
-      trail = [];
-    }
-
-    function finishEpisode(success){
-      episode++;
-      successHistory.push(success?1:0);
-      if(successHistory.length>50) successHistory.shift();
-      stepsHistory.push(success ? stepsInEpisode : MAX_STEPS);
-      if(stepsHistory.length>150) stepsHistory.shift();
-      if(success){
-        parksCompleted++;
-        if(bestSteps===null || stepsInEpisode<bestSteps) bestSteps = stepsInEpisode;
-      }
-      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
-      stepsInEpisode = 0;
-      resetCar();
-    }
-
-    function speedColor(sp){
-      const t = Math.max(0, Math.min(1, Math.abs(sp)/Math.max(MAXFWD,MAXREV)));
-      const hue = 235 - t*195;
-      return `hsl(${hue}, 85%, 60%)`;
-    }
-
-    function drawLot(){
-      ctx.clearRect(0,0,LOT_W,LOT_H);
-      ctx.fillStyle = getCss('--bg2');
-      ctx.fillRect(0,0,LOT_W,LOT_H);
-      ctx.fillStyle = 'rgba(255,255,255,0.03)';
-      ctx.fillRect(0,0,LOT_W,LANE_H);
-      ctx.strokeStyle = getCss('--border');
-      ctx.setLineDash([5,5]);
-      ctx.beginPath(); ctx.moveTo(0,LANE_H); ctx.lineTo(LOT_W,LANE_H); ctx.stroke();
-      for(let i=1;i<nSpots;i++){
-        const x = i*spotW;
-        ctx.beginPath(); ctx.moveTo(x,spotsTop); ctx.lineTo(x,spotsBottom); ctx.stroke();
-      }
-      ctx.setLineDash([]);
-
-      ctx.fillStyle = getCss('--good');
-      ctx.globalAlpha = 0.18;
-      ctx.fillRect(goalSpot.x, goalSpot.y, goalSpot.w, goalSpot.h);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = getCss('--good');
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6,4]);
-      ctx.strokeRect(goalSpot.x+2, goalSpot.y+2, goalSpot.w-4, goalSpot.h-4);
-      ctx.setLineDash([]);
-
-      ctx.fillStyle = getCss('--wall');
-      obstacles.forEach(o=>{
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(o.x,o.y,o.w,o.h,4) : ctx.rect(o.x,o.y,o.w,o.h);
-        ctx.fill();
-      });
-
-      if(showTrail && trail.length>1){
-        ctx.lineWidth = 2.2;
-        for(let i=1;i<trail.length;i++){
-          ctx.strokeStyle = speedColor(trail[i].speed);
-          ctx.beginPath();
-          ctx.moveTo(trail[i-1].x, trail[i-1].y);
-          ctx.lineTo(trail[i].x, trail[i].y);
-          ctx.stroke();
-        }
-      }
-
-      if(showSensors){
-        ctx.strokeStyle = 'rgba(160,108,255,0.55)';
-        ctx.lineWidth = 1.3;
-        SENSOR_ANGLES.forEach(a=>{
-          const d = castRay(a);
-          const ex = car.x+Math.cos(car.angle+a)*d, ey = car.y+Math.sin(car.angle+a)*d;
-          ctx.beginPath(); ctx.moveTo(car.x,car.y); ctx.lineTo(ex,ey); ctx.stroke();
-        });
-      }
-
-      ctx.save();
-      ctx.translate(car.x, car.y);
-      ctx.rotate(car.angle);
-      ctx.fillStyle = getCss('--agent');
-      ctx.beginPath();
-      ctx.moveTo(10,0); ctx.lineTo(-7,6); ctx.lineTo(-7,-6); ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#00000055'; ctx.lineWidth=1.2; ctx.stroke();
-      ctx.restore();
-
-      if(showHud) drawHud();
-    }
-
-    function drawHud(){
-      const x=14,y=14,w=150,h=14,gap=8;
-      ctx.font = '11px Rubik, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(21,24,36,0.75)';
-      ctx.fillRect(x-6,y-6,w+12, h+16+gap+22);
-      ctx.fillStyle = getCss('--muted');
-      ctx.fillText('מהירות (קדימה / אחורה)', x, y+h+2);
-      ctx.strokeStyle = getCss('--border');
-      ctx.strokeRect(x,y,w,h);
-      ctx.beginPath(); ctx.moveTo(x+w/2,y); ctx.lineTo(x+w/2,y+h); ctx.strokeStyle=getCss('--border'); ctx.stroke();
-      const t = Math.max(-1,Math.min(1, car.speed/Math.max(MAXFWD,MAXREV)));
-      ctx.fillStyle = speedColor(car.speed);
-      if(t>=0) ctx.fillRect(x+w/2, y, (w/2)*t, h);
-      else ctx.fillRect(x+w/2+(w/2)*t, y, -(w/2)*t, h);
-
-      const y3 = y+h+16+gap;
-      ctx.fillStyle = getCss('--muted');
-      ctx.fillText('פעולה אחרונה:', x, y3);
-      ctx.fillStyle = getCss('--text');
-      ctx.fillText(ACTION_LABELS[lastAction], x, y3+15);
-    }
-
-    function drawChart(){
-      const cw = chartCanvas.clientWidth, ch = 70;
-      chartCanvas.width = cw*devicePixelRatio;
-      chartCanvas.height = ch*devicePixelRatio;
-      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-      chartCtx.clearRect(0,0,cw,ch);
-      if(stepsHistory.length<2) return;
-      const mx=Math.max(...stepsHistory), mn=Math.min(...stepsHistory);
-      const range=(mx-mn)||1;
-      chartCtx.strokeStyle = getCss('--accent2');
-      chartCtx.lineWidth = 1.6;
-      chartCtx.beginPath();
-      stepsHistory.forEach((v,i)=>{
-        const x=(i/(stepsHistory.length-1))*cw;
-        const y=ch-((v-mn)/range)*(ch-6)-3;
-        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
-      });
-      chartCtx.stroke();
-    }
-
-    function updateStats(){
-      statEpisode.textContent = episode;
-      statSteps.textContent = stepsInEpisode;
-      statEpsilon.textContent = epsilon.toFixed(2);
-      statBest.textContent = bestSteps===null ? '–' : bestSteps;
-      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
-      statSuccess.textContent = rate+'%';
-      statGoals.textContent = parksCompleted;
-    }
-
-    function frame(){
-      if(currentMode==='park'){
-        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
-        drawLot();
-        drawChart();
-        updateStats();
-      }
-      requestAnimationFrame(frame);
-    }
-
-    function newLot(){
-      const sz = SIZE_CFG[sizeSel.value] || SIZE_CFG.medium;
-      const diff = DIFF_CFG[difficultySel.value] || DIFF_CFG.medium;
-
-      LOT_W = sz.W; LOT_H = sz.H; nSpots = sz.spots;
-      LANE_H = 90;
-      spotW = LOT_W/nSpots;
-      spotsTop = LANE_H;
-      spotsBottom = LOT_H-20;
-      spotH = spotsBottom-spotsTop;
-
-      MAXFWD = diff.maxFwd; MAXREV = diff.maxRev;
-      TURN_RATE = diff.turnRate; ACCEL = diff.accel; BRAKE = diff.brake;
-      MAX_STEPS = Math.round((LOT_W+LOT_H)*1.6);
-
-      const goalIdx = 1 + Math.floor(Math.random()*(nSpots-2)); // never the very first/last spot
-      obstacles = [];
-      for(let i=0;i<nSpots;i++){
-        if(i===goalIdx) continue;
-        const margin = spotW*diff.marginFrac;
-        const carW = spotW-2*margin, carH = spotH*0.82;
-        obstacles.push({ x:i*spotW+margin, y:spotsTop+(spotH-carH)/2, w:carW, h:carH });
-      }
-      goalSpot = { x:goalIdx*spotW, y:spotsTop, w:spotW, h:spotH };
-
-      startX = Math.min(30, LOT_W*0.08);
-      startY = LANE_H/2;
-
-      canvas.width = LOT_W;
-      canvas.height = LOT_H;
-
-      Q = {}; V = {};
-      episode=0; stepsInEpisode=0; epsilon=1.0;
-      bestSteps=null; parksCompleted=0;
-      successHistory=[]; stepsHistory=[];
-      resetCar();
-    }
-
-    function resetLearning(){
-      Q = {}; V = {};
-      episode=0; stepsInEpisode=0; epsilon=1.0;
-      bestSteps=null; parksCompleted=0;
-      successHistory=[]; stepsHistory=[];
-      resetCar();
-    }
-
-    btnToggleTrain.addEventListener('click', ()=>{
-      isTraining = !isTraining;
-      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
-    });
-    btnResetQ.addEventListener('click', resetLearning);
-    btnNewLot.addEventListener('click', newLot);
-    sizeSel.addEventListener('change', newLot);
-    difficultySel.addEventListener('change', newLot);
-    speedSlider.addEventListener('input', ()=>{
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      speedVal.textContent = stepsPerFrame;
-    });
-    chkSensors.addEventListener('change', ()=>{ showSensors = chkSensors.checked; });
-    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
-    chkHud.addEventListener('change', ()=>{ showHud = chkHud.checked; });
-
-    function ensureStarted(){
-      if(started) return;
-      started = true;
-      stepsPerFrame = parseInt(speedSlider.value,10);
-      showSensors = chkSensors.checked;
-      showTrail = chkTrail.checked;
-      showHud = chkHud.checked;
-      newLot();
-      requestAnimationFrame(frame);
-    }
-
-    return { ensureStarted };
-  })();
 
   // =====================================================================
   // SNAKE APP
@@ -1975,6 +1969,7 @@
     let bestLen = 1, foodEaten = 0;
     let scoreHistory = [], lenHistory = [];
     let isTraining = false, stepsPerFrame = 10;
+    let turboMode = false, frameCounter = 0;
     let showTrail = true;
 
     const DIFF = {
@@ -2011,6 +2006,7 @@
     const speedSlider = document.getElementById('snSpeedSlider');
     const speedVal = document.getElementById('snSpeedVal');
     const chkTrail = document.getElementById('snChkTrail');
+    const chkTurbo = document.getElementById('snChkTurbo');
     const chkWrap = document.getElementById('snChkWrap');
 
     function cellFree(r,c, excludeTail){
@@ -2270,8 +2266,11 @@
     function frame(){
       if(currentMode==='snake'){
         if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
-        drawSnake();
-        drawChart();
+        frameCounter++;
+        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+          drawSnake();
+          drawChart();
+        }
         updateStats();
       }
       requestAnimationFrame(frame);
@@ -2314,6 +2313,7 @@
       speedVal.textContent = stepsPerFrame;
     });
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
     chkWrap.addEventListener('change', ()=>{ wrapMode = chkWrap.checked; resetLearning(); });
 
     function ensureStarted(){
@@ -2321,6 +2321,7 @@
       started = true;
       stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
+      turboMode = chkTurbo.checked;
       wrapMode = chkWrap.checked;
       newGame();
       requestAnimationFrame(frame);
@@ -2398,6 +2399,9 @@
     let ticksElapsed = 0;
     let cellPx = 20;
     let queuedHumanDir = null, humanDir = 'W';
+    let gamesPlayed = 0, highScore = 0;
+    let autoContinue = true, restartCountdown = 0;
+    const RESTART_DELAY_TICKS = 45; // real-time ticks to pause on game-over screen before auto-restarting
 
     const canvas = document.getElementById('pacCanvas');
     const ctx = canvas.getContext('2d');
@@ -2405,7 +2409,10 @@
     const statLives = document.getElementById('pacStatLives');
     const statLevel = document.getElementById('pacStatLevel');
     const statPhase = document.getElementById('pacStatPhase');
+    const statGames = document.getElementById('pacStatGames');
+    const statHigh = document.getElementById('pacStatHigh');
     const chkPlayerAI = document.getElementById('pacChkPlayerAI');
+    const chkAutoContinue = document.getElementById('pacChkAutoContinue');
     const chkGhostAI = {
       blinky: document.getElementById('pacChkBlinky'),
       pinky:  document.getElementById('pacChkPinky'),
@@ -2526,6 +2533,7 @@
     function newGame(){
       buildGrids();
       score = 0; lives = 3; level = 1; gameOverFlag = false;
+      restartCountdown = 0;
       resetPositions();
       updateStats();
     }
@@ -2687,7 +2695,13 @@
           } else {
             lives--;
             updateStats();
-            if(lives <= 0){ gameOverFlag = true; isRunning = false; btnToggleRun.textContent = '▶ התחל משחק'; }
+            if(lives <= 0){
+              gameOverFlag = true; isRunning = false; btnToggleRun.textContent = '▶ התחל משחק';
+              gamesPlayed++;
+              if(score > highScore) highScore = score;
+              updateStats();
+              if(autoContinue) restartCountdown = RESTART_DELAY_TICKS;
+            }
             else { resetPositions(); }
             return;
           }
@@ -2723,6 +2737,8 @@
       statLevel.textContent = level;
       const mode = currentPhaseMode();
       statPhase.textContent = mode==='frightened' ? 'רוחות מבוהלות' : (mode==='scatter' ? 'פיזור' : 'מרדף');
+      statGames.textContent = gamesPlayed;
+      statHigh.textContent = highScore;
     }
 
     function sizeCanvas(){
@@ -2809,21 +2825,39 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold '+Math.floor(cellPx*1.1)+'px Rubik, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('המשחק נגמר', canvas.width/2, canvas.height/2);
+        ctx.fillText('המשחק נגמר', canvas.width/2, canvas.height/2 - (autoContinue?cellPx*0.7:0));
+        if(autoContinue){
+          ctx.font = Math.floor(cellPx*0.55)+'px Rubik, sans-serif';
+          ctx.fillText('משחק חדש מתחיל אוטומטית...', canvas.width/2, canvas.height/2 + cellPx*0.6);
+        }
       }
     }
 
     function frame(now){
       if(currentMode==='pacman'){
         if(!lastFrameTime) lastFrameTime = now;
-        const dt = now - lastFrameTime;
+        const dt = Math.min(now - lastFrameTime, 250); // clamp huge gaps (e.g. tab was backgrounded)
         lastFrameTime = now;
         const tickMs = TICK_MS_BASE / ticksPerSecond;
         if(isRunning && !gameOverFlag){
           tickAccumMs += dt;
-          while(tickAccumMs >= tickMs){
+          const maxTicksThisFrame = 4000; // safety cap so an extreme speed setting can't freeze the tab
+          let guard = 0;
+          while(tickAccumMs >= tickMs && guard < maxTicksThisFrame){
             tickAccumMs -= tickMs;
             tick();
+            guard++;
+            if(gameOverFlag) break;
+          }
+          if(guard >= maxTicksThisFrame) tickAccumMs = 0;
+        } else if(gameOverFlag && autoContinue && restartCountdown > 0){
+          // count down in real frames (not affected by the training speed slider) so the
+          // game-over screen is always briefly visible before auto-restarting
+          restartCountdown--;
+          if(restartCountdown <= 0){
+            newGame();
+            isRunning = true;
+            btnToggleRun.textContent = '⏸ עצור משחק';
           }
         } else {
           tickAccumMs = 0;
@@ -2859,12 +2893,584 @@
       ticksPerSecond = parseInt(speedSlider.value,10);
       speedVal.textContent = ticksPerSecond;
     });
+    chkAutoContinue.addEventListener('change', ()=>{ autoContinue = chkAutoContinue.checked; });
 
     function ensureStarted(){
       if(started) return;
       started = true;
       ticksPerSecond = parseInt(speedSlider.value,10);
+      autoContinue = chkAutoContinue.checked;
       sizeCanvas();
+      newGame();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // PONG / DEFENSE APP
+  // =====================================================================
+  const PongApp = (function(){
+    let started = false;
+    let W = 560, H = 400;
+    const PADDLE_W = 12;
+    let paddleH = 70;
+    let paddleY = 0;      // top-left y of paddle
+    let paddleX = 24;
+    let ball = {x:0,y:0,vx:0,vy:0};
+    let trail = [];
+
+    let Q = {};
+    let episode = 0;
+    let stepsInEpisode = 0;
+    let rally = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.05, EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.9;
+    let maxStepsPerEpisode = 2000;
+    let bestRally = 0, totalHits = 0;
+    let rallyHistory = [], chartHistory = [];
+    let isTraining = false, stepsPerFrame = 10;
+    let turboMode = false, frameCounter = 0;
+    let showTrail = true;
+
+    let paddleSizeKey = 'medium';
+    let difficultyKey = 'medium';
+    const PADDLE_SIZES = { small:46, medium:70, large:100 };
+    const DIFF = {
+      easy:   { baseSpeed:2.6, accel:0 },
+      medium: { baseSpeed:3.6, accel:0.05 },
+      hard:   { baseSpeed:4.6, accel:0.14 }
+    };
+
+    const PADDLE_STEP = 8; // px per action
+    const N_BUCKETS = 9;   // buckets for continuous quantities
+
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('pgChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('pgStatEpisode');
+    const statRally = document.getElementById('pgStatRally');
+    const statEpsilon = document.getElementById('pgStatEpsilon');
+    const statBest = document.getElementById('pgStatBest');
+    const statAvg = document.getElementById('pgStatAvg');
+    const statGoals = document.getElementById('pgStatGoals');
+
+    const btnToggleTrain = document.getElementById('pgBtnToggleTrain');
+    const btnResetQ = document.getElementById('pgBtnResetQ');
+    const btnNewGame = document.getElementById('pgBtnNewGame');
+    const paddleSizeSel = document.getElementById('pgPaddleSize');
+    const difficultySel = document.getElementById('pgDifficulty');
+    const speedSlider = document.getElementById('pgSpeedSlider');
+    const speedVal = document.getElementById('pgSpeedVal');
+    const chkTrail = document.getElementById('pgChkTrail');
+    const chkTurbo = document.getElementById('pgChkTurbo');
+
+    function bucket(v, lo, hi, n){
+      const t = Math.max(0, Math.min(1, (v-lo)/(hi-lo)));
+      return Math.min(n-1, Math.floor(t*n));
+    }
+
+    function getState(){
+      const relY = bucket(ball.y - (paddleY + paddleH/2), -H, H, N_BUCKETS);
+      const vyDir = ball.vy > 0.3 ? 2 : (ball.vy < -0.3 ? 0 : 1);
+      const vxDir = ball.vx < 0 ? 1 : 0; // 1 = approaching paddle, 0 = moving away
+      const xBucket = bucket(ball.x, 0, W, 6);
+      return relY+','+vyDir+','+vxDir+','+xBucket;
+    }
+
+    function getQ(state){
+      if(!Q[state]) Q[state] = [0,0,0]; // 0=up,1=stay,2=down
+      return Q[state];
+    }
+
+    function chooseAction(state){
+      if(Math.random() < epsilon) return Math.floor(Math.random()*3);
+      const q = getQ(state);
+      let best=0;
+      for(let i=1;i<3;i++) if(q[i] > q[best]) best = i;
+      return best;
+    }
+
+    function resetBall(){
+      const diff = DIFF[difficultyKey] || DIFF.medium;
+      ball.x = W*0.7 + Math.random()*W*0.2;
+      ball.y = 40 + Math.random()*(H-80);
+      const speed = diff.baseSpeed;
+      const angle = (Math.random()*0.8 - 0.4) * Math.PI/2; // biased forward
+      ball.vx = -speed*Math.cos(angle);
+      ball.vy = speed*Math.sin(angle) || speed*0.4;
+    }
+
+    function resetRound(){
+      paddleY = H/2 - paddleH/2;
+      resetBall();
+      trail = [];
+    }
+
+    function doStep(actionIdx){
+      const diff = DIFF[difficultyKey] || DIFF.medium;
+      if(actionIdx===0) paddleY -= PADDLE_STEP;
+      else if(actionIdx===2) paddleY += PADDLE_STEP;
+      paddleY = Math.max(0, Math.min(H-paddleH, paddleY));
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      let reward = 0.02; // tiny per-step alive reward encourages engagement
+      let done = false;
+
+      if(ball.y <= 0){ ball.y = 0; ball.vy *= -1; }
+      if(ball.y >= H){ ball.y = H; ball.vy *= -1; }
+      if(ball.x >= W-6){ ball.x = W-6; ball.vx *= -1; }
+
+      if(showTrail) trail.push({x:ball.x,y:ball.y});
+      if(trail.length>60) trail.shift();
+
+      if(ball.x <= paddleX + PADDLE_W){
+        if(ball.y >= paddleY && ball.y <= paddleY+paddleH){
+          ball.x = paddleX + PADDLE_W;
+          ball.vx = Math.abs(ball.vx) + diff.accel;
+          const offset = (ball.y - (paddleY+paddleH/2)) / (paddleH/2); // -1..1
+          ball.vy += offset*1.2;
+          reward = 5;
+          rally++; totalHits++;
+        } else {
+          reward = -10;
+          done = true;
+        }
+      }
+      return {reward, done};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const {reward, done} = doStep(action);
+      const state1 = done ? null : getState();
+      const nextMax = done ? 0 : Math.max(...getQ(state1));
+      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      stepsInEpisode++;
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
+    }
+
+    function finishEpisode(){
+      episode++;
+      rallyHistory.push(rally);
+      if(rallyHistory.length>50) rallyHistory.shift();
+      chartHistory.push(rally);
+      if(chartHistory.length>150) chartHistory.shift();
+      if(rally > bestRally) bestRally = rally;
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      rally = 0;
+      stepsInEpisode = 0;
+      resetRound();
+    }
+
+    function sizeCanvas(){
+      const maxW = 560;
+      W = maxW; H = Math.floor(maxW*0.72);
+      canvas.width = W; canvas.height = H;
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = getCss('--bg2');
+      ctx.fillRect(0,0,W,H);
+
+      ctx.fillStyle = getCss('--wall');
+      ctx.fillRect(0,0,W,4);
+      ctx.fillRect(0,H-4,W,4);
+      ctx.fillRect(W-4,0,4,H);
+
+      if(showTrail && trail.length>1){
+        ctx.strokeStyle = 'rgba(255,92,122,0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(trail[0].x, trail[0].y);
+        trail.forEach(p=>ctx.lineTo(p.x,p.y));
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(paddleX, paddleY, PADDLE_W, paddleH, 4) : ctx.rect(paddleX, paddleY, PADDLE_W, paddleH);
+      ctx.fill();
+
+      ctx.fillStyle = getCss('--goal');
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, 8, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawChart(){
+      chartCanvas.width = chartCanvas.clientWidth * devicePixelRatio;
+      chartCanvas.height = 70 * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCtx.clearRect(0,0,cw,ch);
+      if(chartHistory.length<2) return;
+      const mx = Math.max(...chartHistory);
+      const mn = Math.min(...chartHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      chartHistory.forEach((v,i)=>{
+        const x = (i/(chartHistory.length-1)) * cw;
+        const y = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statRally.textContent = rally;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestRally;
+      const avg = rallyHistory.length ? (rallyHistory.reduce((a,b)=>a+b,0)/rallyHistory.length).toFixed(1) : '0';
+      statAvg.textContent = avg;
+      statGoals.textContent = totalHits;
+    }
+
+    function frame(){
+      if(currentMode==='pong'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        frameCounter++;
+        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+          draw();
+          drawChart();
+        }
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newGame(){
+      paddleSizeKey = paddleSizeSel.value;
+      difficultyKey = difficultySel.value;
+      paddleH = PADDLE_SIZES[paddleSizeKey] || 70;
+      Q = {};
+      episode = 0; stepsInEpisode = 0; rally = 0; epsilon = 1.0;
+      bestRally = 0; totalHits = 0;
+      rallyHistory = []; chartHistory = [];
+      sizeCanvas();
+      resetRound();
+    }
+
+    function resetLearning(){
+      Q = {};
+      episode = 0; stepsInEpisode = 0; rally = 0; epsilon = 1.0;
+      bestRally = 0; totalHits = 0;
+      rallyHistory = []; chartHistory = [];
+      resetRound();
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewGame.addEventListener('click', newGame);
+    paddleSizeSel.addEventListener('change', newGame);
+    difficultySel.addEventListener('change', newGame);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showTrail = chkTrail.checked;
+      turboMode = chkTurbo.checked;
+      newGame();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // CARTPOLE APP
+  // =====================================================================
+  const CartPoleApp = (function(){
+    let started = false;
+
+    // physics constants (classic cart-pole)
+    const GRAVITY = 9.8, MASS_CART = 1.0, MASS_POLE = 0.1, TOTAL_MASS = MASS_CART+MASS_POLE;
+    const POLE_HALF_LEN = 0.5, POLE_MASS_LEN = MASS_POLE*POLE_HALF_LEN;
+    const FORCE_MAG = 10.0, TAU = 0.02; // seconds between state updates
+    const THETA_LIMIT = 12 * Math.PI/180; // radians
+    let xLimit = 2.4;
+
+    let x=0, xDot=0, theta=0, thetaDot=0;
+    let trailX = [];
+
+    let Q = {};
+    let episode = 0;
+    let stepsInEpisode = 0;
+    let epsilon = 1.0;
+    const EPS_MIN = 0.02, EPS_DECAY = 0.995, ALPHA = 0.2, GAMMA = 0.98;
+    const SOLVED_STEPS = 300;
+    let maxStepsPerEpisode = 800;
+    let bestSteps = 0, solvedCount = 0;
+    let stepsHistory = [], chartHistory = [];
+    let isTraining = false, stepsPerFrame = 10;
+    let turboMode = false, frameCounter = 0;
+    let showTrail = true;
+    let difficultyKey = 'medium';
+    const DIFF = { easy:{xLimit:3.2}, medium:{xLimit:2.4}, hard:{xLimit:1.6} };
+
+    // discretization buckets: [x, xDot, theta, thetaDot]
+    const X_BOUNDS = [-2.4, 2.4], XD_BOUNDS = [-3.5, 3.5];
+    const TH_BOUNDS = [-THETA_LIMIT, THETA_LIMIT], THD_BOUNDS = [-3.5, 3.5];
+    const N_X = 3, N_XD = 3, N_TH = 8, N_THD = 5;
+
+    const canvas = document.getElementById('cpCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('cpChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('cpStatEpisode');
+    const statSteps = document.getElementById('cpStatSteps');
+    const statEpsilon = document.getElementById('cpStatEpsilon');
+    const statBest = document.getElementById('cpStatBest');
+    const statAvg = document.getElementById('cpStatAvg');
+    const statGoals = document.getElementById('cpStatGoals');
+
+    const btnToggleTrain = document.getElementById('cpBtnToggleTrain');
+    const btnResetQ = document.getElementById('cpBtnResetQ');
+    const btnNewGame = document.getElementById('cpBtnNewGame');
+    const difficultySel = document.getElementById('cpDifficulty');
+    const speedSlider = document.getElementById('cpSpeedSlider');
+    const speedVal = document.getElementById('cpSpeedVal');
+    const chkTrail = document.getElementById('cpChkTrail');
+    const chkTurbo = document.getElementById('cpChkTurbo');
+
+    function bucketOf(v, bounds, n){
+      const t = Math.max(0, Math.min(1, (v-bounds[0])/(bounds[1]-bounds[0])));
+      return Math.min(n-1, Math.floor(t*n));
+    }
+
+    function getState(){
+      const bx = bucketOf(x, X_BOUNDS, N_X);
+      const bxd = bucketOf(xDot, XD_BOUNDS, N_XD);
+      const bth = bucketOf(theta, TH_BOUNDS, N_TH);
+      const bthd = bucketOf(thetaDot, THD_BOUNDS, N_THD);
+      return bx+','+bxd+','+bth+','+bthd;
+    }
+
+    function getQ(state){
+      if(!Q[state]) Q[state] = [0,0]; // 0=push left, 1=push right
+      return Q[state];
+    }
+
+    function chooseAction(state){
+      if(Math.random() < epsilon) return Math.random()<0.5 ? 0 : 1;
+      const q = getQ(state);
+      return q[1] > q[0] ? 1 : 0;
+    }
+
+    function physicsStep(actionIdx){
+      const force = actionIdx===1 ? FORCE_MAG : -FORCE_MAG;
+      const cosTheta = Math.cos(theta), sinTheta = Math.sin(theta);
+      const temp = (force + POLE_MASS_LEN*thetaDot*thetaDot*sinTheta) / TOTAL_MASS;
+      const thetaAcc = (GRAVITY*sinTheta - cosTheta*temp) /
+        (POLE_HALF_LEN*(4.0/3.0 - MASS_POLE*cosTheta*cosTheta/TOTAL_MASS));
+      const xAcc = temp - POLE_MASS_LEN*thetaAcc*cosTheta/TOTAL_MASS;
+
+      x += TAU*xDot;
+      xDot += TAU*xAcc;
+      theta += TAU*thetaDot;
+      thetaDot += TAU*thetaAcc;
+    }
+
+    function doStep(actionIdx){
+      physicsStep(actionIdx);
+      const done = Math.abs(x) > xLimit || Math.abs(theta) > THETA_LIMIT;
+      const reward = done ? -1 : 1;
+      if(showTrail){ trailX.push(x); if(trailX.length>80) trailX.shift(); }
+      return {reward, done};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const {reward, done} = doStep(action);
+      const state1 = done ? null : getState();
+      const nextMax = done ? 0 : Math.max(...getQ(state1));
+      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      stepsInEpisode++;
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
+    }
+
+    function finishEpisode(){
+      episode++;
+      stepsHistory.push(stepsInEpisode);
+      if(stepsHistory.length>50) stepsHistory.shift();
+      chartHistory.push(stepsInEpisode);
+      if(chartHistory.length>150) chartHistory.shift();
+      if(stepsInEpisode > bestSteps) bestSteps = stepsInEpisode;
+      if(stepsInEpisode >= SOLVED_STEPS) solvedCount++;
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      stepsInEpisode = 0;
+      resetPole();
+    }
+
+    function resetPole(){
+      x = (Math.random()-0.5)*0.1;
+      xDot = (Math.random()-0.5)*0.1;
+      theta = (Math.random()-0.5)*0.1;
+      thetaDot = (Math.random()-0.5)*0.1;
+      trailX = [];
+    }
+
+    function sizeCanvas(){
+      canvas.width = 560; canvas.height = 400;
+    }
+
+    function draw(){
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = getCss('--bg2');
+      ctx.fillRect(0,0,W,H);
+
+      const trackY = H*0.68;
+      const pxPerUnit = (W*0.42) / xLimit;
+      const cx = W/2 + x*pxPerUnit;
+
+      ctx.strokeStyle = getCss('--wall');
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(W/2 - xLimit*pxPerUnit, trackY+22);
+      ctx.lineTo(W/2 + xLimit*pxPerUnit, trackY+22);
+      ctx.stroke();
+
+      if(showTrail && trailX.length>1){
+        ctx.strokeStyle = 'rgba(108,140,255,0.3)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        trailX.forEach((tx,i)=>{
+          const px = W/2 + tx*pxPerUnit;
+          if(i===0) ctx.moveTo(px, trackY+22); else ctx.lineTo(px, trackY+22);
+        });
+        ctx.stroke();
+      }
+
+      const cartW = 60, cartH = 30;
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(cx-cartW/2, trackY-cartH/2, cartW, cartH, 6) : ctx.rect(cx-cartW/2, trackY-cartH/2, cartW, cartH);
+      ctx.fill();
+
+      const poleLenPx = 130;
+      const poleTipX = cx + Math.sin(theta)*poleLenPx;
+      const poleTipY = trackY - Math.cos(theta)*poleLenPx;
+      ctx.strokeStyle = getCss('--goal');
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, trackY);
+      ctx.lineTo(poleTipX, poleTipY);
+      ctx.stroke();
+      ctx.fillStyle = getCss('--goal');
+      ctx.beginPath();
+      ctx.arc(poleTipX, poleTipY, 7, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawChart(){
+      chartCanvas.width = chartCanvas.clientWidth * devicePixelRatio;
+      chartCanvas.height = 70 * devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCtx.clearRect(0,0,cw,ch);
+      if(chartHistory.length<2) return;
+      const mx = Math.max(...chartHistory);
+      const mn = Math.min(...chartHistory);
+      const range = (mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      chartHistory.forEach((v,i)=>{
+        const px = (i/(chartHistory.length-1)) * cw;
+        const py = ch - ((v-mn)/range) * (ch-6) - 3;
+        if(i===0) chartCtx.moveTo(px,py); else chartCtx.lineTo(px,py);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statSteps.textContent = stepsInEpisode;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestSteps;
+      const avg = stepsHistory.length ? (stepsHistory.reduce((a,b)=>a+b,0)/stepsHistory.length).toFixed(1) : '0';
+      statAvg.textContent = avg;
+      statGoals.textContent = solvedCount;
+    }
+
+    function frame(){
+      if(currentMode==='cartpole'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        frameCounter++;
+        if(!turboMode || !isTraining || frameCounter % 15 === 0){
+          draw();
+          drawChart();
+        }
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newGame(){
+      difficultyKey = difficultySel.value;
+      xLimit = (DIFF[difficultyKey] || DIFF.medium).xLimit;
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = 0; solvedCount = 0;
+      stepsHistory = []; chartHistory = [];
+      sizeCanvas();
+      resetPole();
+    }
+
+    function resetLearning(){
+      Q = {};
+      episode = 0; stepsInEpisode = 0; epsilon = 1.0;
+      bestSteps = 0; solvedCount = 0;
+      stepsHistory = []; chartHistory = [];
+      resetPole();
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewGame.addEventListener('click', newGame);
+    difficultySel.addEventListener('change', newGame);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trailX=[]; });
+    chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showTrail = chkTrail.checked;
+      turboMode = chkTurbo.checked;
       newGame();
       requestAnimationFrame(frame);
     }

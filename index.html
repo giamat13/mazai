@@ -137,6 +137,11 @@
         <span class="title">נהיגת מרוצים</span>
         <span class="desc">סוכן AI לומד לנהוג במסלול מעגלי בעזרת חיישני מרחק, בלי לרדת מהכביש</span>
       </button>
+      <button class="mode-card" data-mode="park">
+        <span class="emoji">🅿️</span>
+        <span class="title">חניה</span>
+        <span class="desc">סוכן AI לומד לחנות רכב במקום צר, כולל נסיעה לאחור, בלי לפגוע ברכבים שכנים</span>
+      </button>
     </div>
   </div>
 
@@ -289,6 +294,78 @@
         הרכב "רואה" רק דרך 5 חיישני מרחק קדימה-אלכסון, ובכל צעד בוחר להאיץ/לפנות/לבלום. תגמול חיובי על התקדמות סביב המסלול, +200 על השלמת הקפה, ו-50- ואיפוס מיידי לנקודת הזינוק אם יורד מהכביש. רמת הקושי משפיעה על רוחב הכביש, עקמומיות המסלול ומהירות הרכב.
       </p>
     </div>
+
+    <!-- ================= PARKING SECTION ================= -->
+    <div id="parkSection" style="display:none;">
+      <h1>🅿️ Mazei — חניה</h1>
+      <p class="subtitle">הרכב לומד לתמרן קדימה ואחורה כדי להיכנס למקום חניה צר, בלי לפגוע ברכבים השכנים</p>
+      <div class="layout">
+        <div class="board-card">
+          <canvas id="parkCanvas" class="board"></canvas>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--agent)"></span> הרכב</span>
+            <span><span class="dot" style="background:var(--good)"></span> מקום חניה</span>
+            <span><span class="dot" style="background:var(--wall)"></span> רכב חונה / קיר</span>
+          </div>
+          <div class="heat-legend">
+            <span>נתיב איטי</span><div class="bar" style="background:linear-gradient(90deg,#6c8cff,#ffd23f,#ff5c7a);"></div><span>מהיר</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">אפיזודה</div><div class="value" id="pkStatEpisode">0</div></div>
+              <div class="stat"><div class="label">צעדים באפיזודה</div><div class="value" id="pkStatSteps">0</div></div>
+              <div class="stat"><div class="label">Epsilon (חקירה)</div><div class="value" id="pkStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">שיא צעדים לחניה</div><div class="value" id="pkStatBest">–</div></div>
+              <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="pkStatSuccess">0%</div></div>
+              <div class="stat"><div class="label">סה"כ חניות מוצלחות</div><div class="value" id="pkStatGoals">0</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">צעדים עד חניה מוצלחת (נמוך=טוב)</div>
+            <canvas id="pkChart" class="chart" height="70"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="pkBtnToggleTrain">▶ התחל אימון</button>
+              <button class="btn-secondary" id="pkBtnResetQ">איפוס למידה</button>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">גודל מגרש
+                <select id="pkSize">
+                  <option value="small">קטן</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="large">גדול</option>
+                </select>
+              </label>
+              <label class="field-inline">רמת קושי
+                <select id="pkDifficulty">
+                  <option value="easy">קל (מקום רחב)</option>
+                  <option value="medium" selected>בינוני</option>
+                  <option value="hard">קשה (חניה צמודה)</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-secondary" id="pkBtnNewLot">🎲 מגרש חדש</button>
+            </div>
+            <label class="field">
+              מהירות אימון: <b id="pkSpeedVal">10</b> צעדים/פריים
+              <input type="range" id="pkSpeedSlider" min="1" max="300" value="10">
+            </label>
+            <div class="toggle-row"><span>הצג חיישני מרחק</span><input type="checkbox" id="pkChkSensors" checked></div>
+            <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="pkChkTrail" checked></div>
+            <div class="toggle-row"><span>הצג לוח מחוונים (HUD)</span><input type="checkbox" id="pkChkHud" checked></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">
+        הרכב "רואה" 5 חיישני מרחק (כולל אחורה), ויודע גם את המרחק והזווית שלו יחסית למקום החניה. הוא בוחר בכל צעד בין האצה קדימה/פנייה/נסיעה לאחור/בלימה. תגמול על התקרבות ויישור נכון למקום, 50- על פגיעה ברכב שכן או בקיר, +200 על חניה מוצלחת (בתוך המקום, כמעט ללא תנועה, עם כיוון נכון).
+      </p>
+    </div>
   </div>
 
 <script>
@@ -298,11 +375,12 @@
   // =====================================================================
   // Shared mode switching
   // =====================================================================
-  let currentMode = null; // 'maze' | 'race'
+  let currentMode = null; // 'maze' | 'race' | 'park'
   const modeSelect = document.getElementById('modeSelect');
   const appWrap = document.getElementById('appWrap');
   const mazeSection = document.getElementById('mazeSection');
   const raceSection = document.getElementById('raceSection');
+  const parkSection = document.getElementById('parkSection');
 
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -311,8 +389,10 @@
       appWrap.style.display = 'block';
       mazeSection.style.display = currentMode==='maze' ? 'block' : 'none';
       raceSection.style.display = currentMode==='race' ? 'block' : 'none';
+      parkSection.style.display = currentMode==='park' ? 'block' : 'none';
       if(currentMode==='maze') MazeApp.ensureStarted();
       if(currentMode==='race') RaceApp.ensureStarted();
+      if(currentMode==='park') ParkApp.ensureStarted();
     });
   });
   document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
@@ -427,10 +507,17 @@
       }
     }
 
+    let V = {}; // visit counts per (cell, action) — lets us tell "actually tried" from "still default 0"
+
     function getQ(r,c){
       const k = r+','+c;
       if(!Q[k]) Q[k] = [0,0,0,0];
       return Q[k];
+    }
+    function getV(r,c){
+      const k = r+','+c;
+      if(!V[k]) V[k] = [0,0,0,0];
+      return V[k];
     }
     function maxQ(r,c){ return Math.max(...getQ(r,c)); }
 
@@ -466,9 +553,11 @@
       const r0=agent.r, c0=agent.c;
       const action = chooseAction(r0,c0);
       const q = getQ(r0,c0);
+      const v = getV(r0,c0);
       const {reward, done} = doStep(action);
       const nextMax = maxQ(agent.r, agent.c);
       q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      v[action]++;
       stepsInEpisode++;
       if(showTrail) trail.push({r:agent.r,c:agent.c});
       if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode(agent.r===rows-1 && agent.c===cols-1);
@@ -507,9 +596,11 @@
         for(let c=0;c<cols;c++){
           if(r===rows-1 && c===cols-1) continue;
           const q = getQ(r,c);
-          if(q[0]===0 && q[1]===0 && q[2]===0 && q[3]===0) continue;
-          let best=0;
-          for(let i=1;i<4;i++) if(q[i] > q[best]) best=i;
+          const v = getV(r,c);
+          const tried = [0,1,2,3].filter(i=>v[i]>0);
+          if(tried.length===0) continue; // nothing actually tried here yet — don't guess
+          let best=tried[0];
+          for(const i of tried) if(q[i] > q[best]) best=i;
           const dir = DIRS[best];
           const [dx,dy] = ARROW_DX[dir];
           const cx = c*cell+cell/2, cy = r*cell+cell/2;
@@ -645,7 +736,7 @@
       maxStepsPerEpisode = rows*cols*diff.stepsMult;
       maze = generateMaze(rows, cols);
       applyBraiding(maze, rows, cols, braidProb);
-      Q = {};
+      Q = {}; V = {};
       agent = {r:0,c:0};
       trail = [];
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
@@ -655,7 +746,7 @@
     }
 
     function resetLearning(){
-      Q = {};
+      Q = {}; V = {};
       agent = {r:0,c:0};
       trail = [];
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
@@ -742,6 +833,7 @@
     let MAX_STEPS = 1200;
 
     let Q = {};
+    let V = {}; // visit counts per (state, action) — lets us tell "actually tried" from "still default 0"
     let car = {x:0,y:0,angle:0,speed:0};
     let prevTheta = 0, angleUnwrapped = 0;
     let trail = [];
@@ -798,6 +890,10 @@
       if(!Q[state]) Q[state] = new Array(ACTIONS).fill(0);
       return Q[state];
     }
+    function getV(state){
+      if(!V[state]) V[state] = new Array(ACTIONS).fill(0);
+      return V[state];
+    }
     function maxQ(state){ return Math.max(...getQ(state)); }
 
     function chooseAction(state){
@@ -851,9 +947,11 @@
       const state0 = getState();
       const action = chooseAction(state0);
       const q = getQ(state0);
+      const v = getV(state0);
       const {reward, done, success} = doCarStep(action);
       const state1 = getState();
       q[action] += ALPHA * (reward + GAMMA*maxQ(state1) - q[action]);
+      v[action]++;
       lastAction = action;
       stepsInEpisode++;
       if(showTrail) trail.push({x:car.x, y:car.y, speed:car.speed});
@@ -960,10 +1058,13 @@
         const {px, py, heading} = tangentAt(theta);
         const state = getStateFrom(px, py, heading, assumedSpeed);
         const q = Q[state];
-        if(!q) continue;
-        let best=0;
-        for(let k=1;k<ACTIONS;k++) if(q[k] > q[best]) best = k;
-        if(q.every(v=>v===0)) continue;
+        const v = V[state];
+        if(!q || !v) continue;
+        const tried = [];
+        for(let k=0;k<ACTIONS;k++) if(v[k]>0) tried.push(k);
+        if(tried.length===0) continue; // nothing actually tried in this state yet — don't guess
+        let best=tried[0];
+        for(const k of tried) if(q[k] > q[best]) best = k;
 
         let arrowAngle = heading;
         let color = getCss('--accent2');
@@ -1135,7 +1236,7 @@
       BRAKE = diff.brake;
       MAX_STEPS = Math.round((ringA+ringB)*7);
 
-      Q = {};
+      Q = {}; V = {};
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; lapsCompleted = 0;
       successHistory = []; stepsHistory = [];
@@ -1143,7 +1244,7 @@
     }
 
     function resetLearning(){
-      Q = {};
+      Q = {}; V = {};
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; lapsCompleted = 0;
       successHistory = []; stepsHistory = [];
@@ -1179,6 +1280,398 @@
       showPolicy = chkPolicy.checked;
       showHud = chkHud.checked;
       newTrack();
+      requestAnimationFrame(frame);
+    }
+
+    return { ensureStarted };
+  })();
+
+  // =====================================================================
+  // PARK APP
+  // =====================================================================
+  const ParkApp = (function(){
+    let started = false;
+    const canvas = document.getElementById('parkCanvas');
+    const ctx = canvas.getContext('2d');
+    const chartCanvas = document.getElementById('pkChart');
+    const chartCtx = chartCanvas.getContext('2d');
+
+    const statEpisode = document.getElementById('pkStatEpisode');
+    const statSteps = document.getElementById('pkStatSteps');
+    const statEpsilon = document.getElementById('pkStatEpsilon');
+    const statBest = document.getElementById('pkStatBest');
+    const statSuccess = document.getElementById('pkStatSuccess');
+    const statGoals = document.getElementById('pkStatGoals');
+
+    const btnToggleTrain = document.getElementById('pkBtnToggleTrain');
+    const btnResetQ = document.getElementById('pkBtnResetQ');
+    const btnNewLot = document.getElementById('pkBtnNewLot');
+    const sizeSel = document.getElementById('pkSize');
+    const difficultySel = document.getElementById('pkDifficulty');
+    const speedSlider = document.getElementById('pkSpeedSlider');
+    const speedVal = document.getElementById('pkSpeedVal');
+    const chkSensors = document.getElementById('pkChkSensors');
+    const chkTrail = document.getElementById('pkChkTrail');
+    const chkHud = document.getElementById('pkChkHud');
+
+    const SIZE_CFG = {
+      small:  {W:460, H:340, spots:4},
+      medium: {W:560, H:400, spots:5},
+      large:  {W:640, H:460, spots:6}
+    };
+    const DIFF_CFG = {
+      easy:   {marginFrac:0.24, maxFwd:2.2, maxRev:1.6, turnRate:0.11,  accel:0.14, brake:0.22},
+      medium: {marginFrac:0.13, maxFwd:2.6, maxRev:1.8, turnRate:0.095, accel:0.16, brake:0.24},
+      hard:   {marginFrac:0.045,maxFwd:3.0, maxRev:2.0, turnRate:0.085, accel:0.18, brake:0.26}
+    };
+
+    let LOT_W=560, LOT_H=400, LANE_H=90, nSpots=5, spotW=112, spotsTop=90, spotsBottom=380, spotH=290;
+    let obstacles = [], goalSpot = {x:0,y:0,w:0,h:0};
+    let CAR_R = 8;
+    let MAXFWD=2.6, MAXREV=1.8, TURN_RATE=0.095, ACCEL=0.16, BRAKE=0.24;
+    const AMBIENT_FRICTION = 0.03;
+    let MAX_STEPS = 900;
+
+    let Q = {};
+    let V = {}; // visit counts per (state, action) — lets us tell "actually tried" from "still default 0"
+    let car = {x:0,y:0,angle:0,speed:0};
+    let startX=30, startY=45;
+    let trail = [];
+    let episode=0, stepsInEpisode=0, epsilon=1.0;
+    const EPS_MIN=0.05, EPS_DECAY=0.992, ALPHA=0.2, GAMMA=0.97;
+    let bestSteps=null, parksCompleted=0;
+    let successHistory=[], stepsHistory=[];
+    let isTraining=false, stepsPerFrame=10;
+    let showSensors=true, showTrail=true, showHud=true;
+    let lastAction=0;
+
+    const SENSOR_ANGLES = [-135,-45,0,45,135].map(d=>d*Math.PI/180);
+    const SENSOR_MAX = 140, SENSOR_STEP = 6;
+    const ACTIONS = 6;
+    const ACTION_LABELS = ['⬆ קדימה','↖ קדימה-שמאלה','↗ קדימה-ימינה','⬇ אחורה','⏹ בלימה','• האטה חופשית'];
+
+    function bucket(v, maxV, n){ return Math.min(n-1, Math.max(0, Math.floor((v/maxV)*n))); }
+    function signedBucket(v, maxV, n){ const t = Math.max(0, Math.min(1, (v+maxV)/(2*maxV))); return Math.min(n-1, Math.floor(t*n)); }
+
+    function isBlocked(x,y){
+      if(x-CAR_R<0 || x+CAR_R>LOT_W || y-CAR_R<0 || y+CAR_R>LOT_H) return true;
+      for(const o of obstacles){
+        if(x>o.x-CAR_R && x<o.x+o.w+CAR_R && y>o.y-CAR_R && y<o.y+o.h+CAR_R) return true;
+      }
+      return false;
+    }
+
+    function castRayFrom(x,y,angle,angleOffset){
+      const ang = angle+angleOffset;
+      for(let d=SENSOR_STEP; d<=SENSOR_MAX; d+=SENSOR_STEP){
+        const rx = x+Math.cos(ang)*d, ry = y+Math.sin(ang)*d;
+        if(isBlocked(rx,ry)) return d-SENSOR_STEP/2;
+      }
+      return SENSOR_MAX;
+    }
+    function castRay(angleOffset){ return castRayFrom(car.x,car.y,car.angle,angleOffset); }
+
+    function getStateFrom(x,y,angle,speed){
+      const sensors = SENSOR_ANGLES.map(a=>bucket(castRayFrom(x,y,angle,a), SENSOR_MAX, 4));
+      const gcx = goalSpot.x+goalSpot.w/2, gcy = goalSpot.y+goalSpot.h/2;
+      const latB = signedBucket(gcx-x, LOT_W/2, 5);
+      const fwdB = signedBucket(gcy-y, LOT_H/2, 5);
+      const headB = bucket(Math.abs(Math.cos(angle)), 1, 4); // 0 = facing vertically (aligned with spot), 3 = facing horizontally
+      const spdB = signedBucket(speed, Math.max(MAXFWD,MAXREV), 5);
+      return sensors.join(',')+'|'+latB+','+fwdB+','+headB+'|'+spdB;
+    }
+    function getState(){ return getStateFrom(car.x,car.y,car.angle,car.speed); }
+
+    function getQ(state){ if(!Q[state]) Q[state]=new Array(ACTIONS).fill(0); return Q[state]; }
+    function getV(state){ if(!V[state]) V[state]=new Array(ACTIONS).fill(0); return V[state]; }
+    function maxQ(state){ return Math.max(...getQ(state)); }
+
+    function chooseAction(state){
+      if(Math.random()<epsilon) return Math.floor(Math.random()*ACTIONS);
+      const q = getQ(state);
+      let best=0;
+      for(let i=1;i<ACTIONS;i++) if(q[i]>q[best]) best=i;
+      return best;
+    }
+
+    function applyPhysics(action){
+      switch(action){
+        case 0: car.speed = Math.min(MAXFWD, car.speed+ACCEL); break;
+        case 1: car.speed = Math.min(MAXFWD, car.speed+ACCEL*0.6); car.angle -= TURN_RATE*(car.speed>=0?1:-1); break;
+        case 2: car.speed = Math.min(MAXFWD, car.speed+ACCEL*0.6); car.angle += TURN_RATE*(car.speed>=0?1:-1); break;
+        case 3: car.speed = Math.max(-MAXREV, car.speed-ACCEL); break;
+        case 4: car.speed = car.speed>0 ? Math.max(0,car.speed-BRAKE) : Math.min(0,car.speed+BRAKE); break;
+        case 5: car.speed *= (1-AMBIENT_FRICTION*3); break;
+      }
+      car.speed *= (1-AMBIENT_FRICTION*0.3);
+      car.x += Math.cos(car.angle)*car.speed;
+      car.y += Math.sin(car.angle)*car.speed;
+    }
+
+    function doCarStep(action){
+      const gcx=goalSpot.x+goalSpot.w/2, gcy=goalSpot.y+goalSpot.h/2;
+      const prevDist = Math.hypot(car.x-gcx, car.y-gcy);
+      applyPhysics(action);
+      const newDist = Math.hypot(car.x-gcx, car.y-gcy);
+      let reward = (prevDist-newDist)*1.2 - 0.05;
+      let done=false, success=false;
+      if(isBlocked(car.x,car.y)){
+        reward = -50; done = true;
+      } else {
+        const margin = CAR_R*0.4;
+        const inGoalX = car.x>goalSpot.x+margin && car.x<goalSpot.x+goalSpot.w-margin;
+        const inGoalY = car.y>goalSpot.y+margin && car.y<goalSpot.y+goalSpot.h-margin;
+        const headingOk = Math.abs(Math.cos(car.angle)) < 0.28;
+        const stillOk = Math.abs(car.speed) < 0.15;
+        if(inGoalX && inGoalY && headingOk && stillOk){
+          reward += 200; done = true; success = true;
+        } else if(stepsInEpisode+1 >= MAX_STEPS){
+          done = true;
+        }
+      }
+      return {reward, done, success};
+    }
+
+    function learnStep(){
+      const state0 = getState();
+      const action = chooseAction(state0);
+      const q = getQ(state0);
+      const v = getV(state0);
+      const {reward, done, success} = doCarStep(action);
+      const state1 = getState();
+      q[action] += ALPHA * (reward + GAMMA*maxQ(state1) - q[action]);
+      v[action]++;
+      lastAction = action;
+      stepsInEpisode++;
+      if(showTrail) trail.push({x:car.x, y:car.y, speed:car.speed});
+      if(done) finishEpisode(success);
+    }
+
+    function resetCar(){
+      car.x = startX; car.y = startY; car.angle = 0; car.speed = 0;
+      trail = [];
+    }
+
+    function finishEpisode(success){
+      episode++;
+      successHistory.push(success?1:0);
+      if(successHistory.length>50) successHistory.shift();
+      stepsHistory.push(success ? stepsInEpisode : MAX_STEPS);
+      if(stepsHistory.length>150) stepsHistory.shift();
+      if(success){
+        parksCompleted++;
+        if(bestSteps===null || stepsInEpisode<bestSteps) bestSteps = stepsInEpisode;
+      }
+      epsilon = Math.max(EPS_MIN, epsilon*EPS_DECAY);
+      stepsInEpisode = 0;
+      resetCar();
+    }
+
+    function speedColor(sp){
+      const t = Math.max(0, Math.min(1, Math.abs(sp)/Math.max(MAXFWD,MAXREV)));
+      const hue = 235 - t*195;
+      return `hsl(${hue}, 85%, 60%)`;
+    }
+
+    function drawLot(){
+      ctx.clearRect(0,0,LOT_W,LOT_H);
+      ctx.fillStyle = getCss('--bg2');
+      ctx.fillRect(0,0,LOT_W,LOT_H);
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillRect(0,0,LOT_W,LANE_H);
+      ctx.strokeStyle = getCss('--border');
+      ctx.setLineDash([5,5]);
+      ctx.beginPath(); ctx.moveTo(0,LANE_H); ctx.lineTo(LOT_W,LANE_H); ctx.stroke();
+      for(let i=1;i<nSpots;i++){
+        const x = i*spotW;
+        ctx.beginPath(); ctx.moveTo(x,spotsTop); ctx.lineTo(x,spotsBottom); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = getCss('--good');
+      ctx.globalAlpha = 0.18;
+      ctx.fillRect(goalSpot.x, goalSpot.y, goalSpot.w, goalSpot.h);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = getCss('--good');
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6,4]);
+      ctx.strokeRect(goalSpot.x+2, goalSpot.y+2, goalSpot.w-4, goalSpot.h-4);
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = getCss('--wall');
+      obstacles.forEach(o=>{
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(o.x,o.y,o.w,o.h,4) : ctx.rect(o.x,o.y,o.w,o.h);
+        ctx.fill();
+      });
+
+      if(showTrail && trail.length>1){
+        ctx.lineWidth = 2.2;
+        for(let i=1;i<trail.length;i++){
+          ctx.strokeStyle = speedColor(trail[i].speed);
+          ctx.beginPath();
+          ctx.moveTo(trail[i-1].x, trail[i-1].y);
+          ctx.lineTo(trail[i].x, trail[i].y);
+          ctx.stroke();
+        }
+      }
+
+      if(showSensors){
+        ctx.strokeStyle = 'rgba(160,108,255,0.55)';
+        ctx.lineWidth = 1.3;
+        SENSOR_ANGLES.forEach(a=>{
+          const d = castRay(a);
+          const ex = car.x+Math.cos(car.angle+a)*d, ey = car.y+Math.sin(car.angle+a)*d;
+          ctx.beginPath(); ctx.moveTo(car.x,car.y); ctx.lineTo(ex,ey); ctx.stroke();
+        });
+      }
+
+      ctx.save();
+      ctx.translate(car.x, car.y);
+      ctx.rotate(car.angle);
+      ctx.fillStyle = getCss('--agent');
+      ctx.beginPath();
+      ctx.moveTo(10,0); ctx.lineTo(-7,6); ctx.lineTo(-7,-6); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#00000055'; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.restore();
+
+      if(showHud) drawHud();
+    }
+
+    function drawHud(){
+      const x=14,y=14,w=150,h=14,gap=8;
+      ctx.font = '11px Rubik, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(21,24,36,0.75)';
+      ctx.fillRect(x-6,y-6,w+12, h+16+gap+22);
+      ctx.fillStyle = getCss('--muted');
+      ctx.fillText('מהירות (קדימה / אחורה)', x, y+h+2);
+      ctx.strokeStyle = getCss('--border');
+      ctx.strokeRect(x,y,w,h);
+      ctx.beginPath(); ctx.moveTo(x+w/2,y); ctx.lineTo(x+w/2,y+h); ctx.strokeStyle=getCss('--border'); ctx.stroke();
+      const t = Math.max(-1,Math.min(1, car.speed/Math.max(MAXFWD,MAXREV)));
+      ctx.fillStyle = speedColor(car.speed);
+      if(t>=0) ctx.fillRect(x+w/2, y, (w/2)*t, h);
+      else ctx.fillRect(x+w/2+(w/2)*t, y, -(w/2)*t, h);
+
+      const y3 = y+h+16+gap;
+      ctx.fillStyle = getCss('--muted');
+      ctx.fillText('פעולה אחרונה:', x, y3);
+      ctx.fillStyle = getCss('--text');
+      ctx.fillText(ACTION_LABELS[lastAction], x, y3+15);
+    }
+
+    function drawChart(){
+      const cw = chartCanvas.clientWidth, ch = 70;
+      chartCanvas.width = cw*devicePixelRatio;
+      chartCanvas.height = ch*devicePixelRatio;
+      chartCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      chartCtx.clearRect(0,0,cw,ch);
+      if(stepsHistory.length<2) return;
+      const mx=Math.max(...stepsHistory), mn=Math.min(...stepsHistory);
+      const range=(mx-mn)||1;
+      chartCtx.strokeStyle = getCss('--accent2');
+      chartCtx.lineWidth = 1.6;
+      chartCtx.beginPath();
+      stepsHistory.forEach((v,i)=>{
+        const x=(i/(stepsHistory.length-1))*cw;
+        const y=ch-((v-mn)/range)*(ch-6)-3;
+        if(i===0) chartCtx.moveTo(x,y); else chartCtx.lineTo(x,y);
+      });
+      chartCtx.stroke();
+    }
+
+    function updateStats(){
+      statEpisode.textContent = episode;
+      statSteps.textContent = stepsInEpisode;
+      statEpsilon.textContent = epsilon.toFixed(2);
+      statBest.textContent = bestSteps===null ? '–' : bestSteps;
+      const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
+      statSuccess.textContent = rate+'%';
+      statGoals.textContent = parksCompleted;
+    }
+
+    function frame(){
+      if(currentMode==='park'){
+        if(isTraining) for(let i=0;i<stepsPerFrame;i++) learnStep();
+        drawLot();
+        drawChart();
+        updateStats();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function newLot(){
+      const sz = SIZE_CFG[sizeSel.value] || SIZE_CFG.medium;
+      const diff = DIFF_CFG[difficultySel.value] || DIFF_CFG.medium;
+
+      LOT_W = sz.W; LOT_H = sz.H; nSpots = sz.spots;
+      LANE_H = 90;
+      spotW = LOT_W/nSpots;
+      spotsTop = LANE_H;
+      spotsBottom = LOT_H-20;
+      spotH = spotsBottom-spotsTop;
+
+      MAXFWD = diff.maxFwd; MAXREV = diff.maxRev;
+      TURN_RATE = diff.turnRate; ACCEL = diff.accel; BRAKE = diff.brake;
+      MAX_STEPS = Math.round((LOT_W+LOT_H)*1.6);
+
+      const goalIdx = 1 + Math.floor(Math.random()*(nSpots-2)); // never the very first/last spot
+      obstacles = [];
+      for(let i=0;i<nSpots;i++){
+        if(i===goalIdx) continue;
+        const margin = spotW*diff.marginFrac;
+        const carW = spotW-2*margin, carH = spotH*0.82;
+        obstacles.push({ x:i*spotW+margin, y:spotsTop+(spotH-carH)/2, w:carW, h:carH });
+      }
+      goalSpot = { x:goalIdx*spotW, y:spotsTop, w:spotW, h:spotH };
+
+      startX = Math.min(30, LOT_W*0.08);
+      startY = LANE_H/2;
+
+      canvas.width = LOT_W;
+      canvas.height = LOT_H;
+
+      Q = {}; V = {};
+      episode=0; stepsInEpisode=0; epsilon=1.0;
+      bestSteps=null; parksCompleted=0;
+      successHistory=[]; stepsHistory=[];
+      resetCar();
+    }
+
+    function resetLearning(){
+      Q = {}; V = {};
+      episode=0; stepsInEpisode=0; epsilon=1.0;
+      bestSteps=null; parksCompleted=0;
+      successHistory=[]; stepsHistory=[];
+      resetCar();
+    }
+
+    btnToggleTrain.addEventListener('click', ()=>{
+      isTraining = !isTraining;
+      btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+    });
+    btnResetQ.addEventListener('click', resetLearning);
+    btnNewLot.addEventListener('click', newLot);
+    sizeSel.addEventListener('change', newLot);
+    difficultySel.addEventListener('change', newLot);
+    speedSlider.addEventListener('input', ()=>{
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      speedVal.textContent = stepsPerFrame;
+    });
+    chkSensors.addEventListener('change', ()=>{ showSensors = chkSensors.checked; });
+    chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
+    chkHud.addEventListener('change', ()=>{ showHud = chkHud.checked; });
+
+    function ensureStarted(){
+      if(started) return;
+      started = true;
+      stepsPerFrame = parseInt(speedSlider.value,10);
+      showSensors = chkSensors.checked;
+      showTrail = chkTrail.checked;
+      showHud = chkHud.checked;
+      newLot();
       requestAnimationFrame(frame);
     }
 

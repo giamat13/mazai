@@ -161,6 +161,16 @@
     font-size:.72rem;color:var(--muted);
   }
   .player-pill.active{color:var(--text);border-color:var(--accent);box-shadow:0 0 0 1px #6c8cff33 inset;}
+  .training-speed-control{
+    flex:1; max-width:720px; min-width:310px; margin-inline:auto;
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:8px 12px; display:flex; align-items:center; gap:9px; flex-wrap:wrap;
+    box-shadow:0 8px 24px -16px #00000080; font-size:.74rem; color:var(--muted);
+  }
+  .training-speed-control > span:first-child{color:var(--text);font-weight:700;}
+  .training-speed-control #trainingSpeedLabel{color:var(--accent);font-weight:800;min-width:72px;text-align:center;}
+  .training-speed-control input[type=range]{flex:1;min-width:140px;margin:0;}
+  .training-speed-end{font-size:.64rem;color:var(--muted);}
   .footer-note{
     text-align:center; color:var(--muted); font-size:.72rem; margin-top:18px;
     max-width:600px; margin-left:auto; margin-right:auto;
@@ -217,7 +227,15 @@
   </div>
 
   <div id="appWrap">
-    <div class="topbar"><button class="btn-back" id="btnBackToMenu">⬅ תפריט ראשי</button></div>
+    <div class="topbar" style="align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn-back" id="btnBackToMenu">⬅ תפריט ראשי</button>
+      <div class="training-speed-control" title="שולט במהירות האימון בכל המשחקים">
+        <span>⚡ מהירות אימון</span>
+        <span id="trainingSpeedLabel">הכי מהיר</span>
+        <input type="range" id="trainingSpeedSlider" min="1" max="100" value="100" aria-label="מהירות אימון">
+        <span class="training-speed-end">🐢 ממש איטי</span><span class="training-speed-end">🚀 הכי מהיר</span>
+      </div>
+    </div>
 
     <!-- ================= MAZE SECTION ================= -->
     <div id="mazeSection">
@@ -947,36 +965,110 @@
     reader.onerror = onError;
     reader.readAsText(file);
   }
-  // Runs stepFn() repeatedly until the time budget is used up — adapts automatically
-  // to each game's per-step cost instead of guessing a fixed step count, so training
-  // always uses the full available frame time.
-  function runTrainingBudget(stepFn, budgetMs){
-    const start = performance.now();
-    let count = 0;
-    // Check the clock in batches: performance.now() itself is surprisingly
-    // expensive when called millions of times per second.
-    const CHECK_EVERY = 2048;
-    while(true){
-      const batch = Math.min(CHECK_EVERY, 300000 - count);
-      for(let i=0; i<batch; i++) stepFn();
-      count += batch;
-      if(count >= 300000 || performance.now() - start >= budgetMs) break;
-    }
-    return count;
-  }
   // Maps an eval-speed slider (1..100) to steps/sec (slow..moderately fast, never blazing)
   // and the resulting frame interval at ~60fps.
   function evalStepsPerSec(sliderVal){
     return 1 + (sliderVal-1)/99 * 24; // 1 .. 25 steps/sec
   }
 
-  // Training-speed tuning: spend a larger slice of each frame on pure learning
-  // and redraw less often while training. The UI is still refreshed regularly,
-  // but the learner gets substantially more Q-learning steps per second.
-  // Maximum-speed training: prioritize simulation over animation/DOM work.
-  // The browser remains interactive because the budget is still bounded per frame.
-  const TRAIN_BUDGET_MS = 85;
-  const TRAIN_RENDER_EVERY = 30;
+  // Global training-speed control.
+  //
+  // The slider is linear in *log* steps/second, not in steps/second itself.
+  // Training speed has to span several orders of magnitude (a couple of
+  // steps/sec, for something you can actually watch, up to hundreds of
+  // thousands of steps/sec), and real-world step cost / frame timing is not
+  // linear either. A slider that's linear in raw ms-per-frame (the old
+  // approach) is deceptive: most of its range sits past the point where the
+  // browser's own frame timing saturates the achievable speed, so a huge
+  // stretch of the bar does almost nothing, while a couple of ticks near a
+  // threshold produce a big, sudden jump. Using log-space instead means
+  // every equal segment of the bar corresponds to the same *multiplier* on
+  // speed, so movement anywhere on the slider feels the same.
+  const TRAIN_SPEED_MIN_SPS = 2;        // steps/sec at slider = 1 (clearly watchable)
+  const TRAIN_SPEED_MAX_SPS = 200000;   // steps/sec at slider = 100 (as fast as the browser can realistically go)
+  const TRAIN_SPEED_DEFAULT = 100;
+  let trainingSpeed = TRAIN_SPEED_DEFAULT;
+  function trainingStepsPerSec(){
+    const t = (trainingSpeed - 1) / 99; // 0..1, evenly across the whole slider
+    return TRAIN_SPEED_MIN_SPS * Math.pow(TRAIN_SPEED_MAX_SPS / TRAIN_SPEED_MIN_SPS, t);
+  }
+  // Kept around only as a human-readable "ms per step" figure for the UI (aria label).
+  function trainingBudgetMs(){
+    return 1000 / trainingStepsPerSec();
+  }
+
+  // Runs stepFn() at a target rate of trainingStepsPerSec(), tracked against
+  // real wall-clock time rather than "however many steps fit in this frame".
+  // That decoupling is the actual fix: previously, speed was an indirect
+  // side-effect of how much CPU time a frame happened to have left after
+  // rendering/vsync, which is exactly what produced uneven jumps. Now the
+  // slider directly sets a steps/sec target, and any fractional step "owed"
+  // at the end of a frame (e.g. because we hit the per-frame time cap, or a
+  // frame arrived early) carries over to the next call, so the *average*
+  // rate matches the slider precisely over time even though individual
+  // frames vary. Keyed by id so each simulator (maze, rope, snake, pong,
+  // cartpole, flappy, tictactoe, connect4) tracks its own state.
+  const _trainAccum = Object.create(null);   // id -> fractional steps owed
+  const _trainLastTs = Object.create(null);  // id -> last call's timestamp
+  const TRAIN_STEP_TIME_CAP_MS = 40; // real ms we'll spend running steps in one call before yielding; any remainder carries over
+  function runTrainingSteps(id, stepFn, ts){
+    const now = ts !== undefined ? ts : performance.now();
+    const last = _trainLastTs[id];
+    _trainLastTs[id] = now;
+    let dt = last === undefined ? 0 : (now - last) / 1000;
+    if(dt < 0) dt = 0;
+    if(dt > 0.25) dt = 0.25; // clamp so returning from a backgrounded tab doesn't dump a huge catch-up burst
+    const owed = (_trainAccum[id] || 0) + trainingStepsPerSec() * dt;
+    const want = Math.floor(owed);
+    const start = performance.now();
+    let count = 0;
+    while(count < want){
+      stepFn();
+      count++;
+      if((count & 255) === 0 && performance.now() - start >= TRAIN_STEP_TIME_CAP_MS) break;
+    }
+    _trainAccum[id] = owed - count;
+    return count;
+  }
+  // Backwards-compatible wrappers so every simulator's existing frame() loop keeps working unchanged.
+  function runTrainingBudget(stepFn, budgetMs){ return runTrainingSteps('__default', stepFn); }
+  function runTrainingBudgetThrottled(id, stepFn, budgetMs, ts){ return runTrainingSteps(id, stepFn, ts); }
+  function trainingRenderEvery(){
+    // Purely a rendering-frequency choice now — actual training speed no
+    // longer depends on how often we redraw the canvas, only on how often
+    // we're willing to spend time painting instead of stepping.
+    const sps = trainingStepsPerSec();
+    if(sps <= 15) return 1;
+    if(sps <= 60) return 2;
+    if(sps <= 300) return 4;
+    if(sps <= 1500) return 8;
+    if(sps <= 8000) return 15;
+    return 30;
+  }
+  const trainingSpeedSlider = document.getElementById('trainingSpeedSlider');
+  const trainingSpeedLabel = document.getElementById('trainingSpeedLabel');
+  function updateTrainingSpeedUI(){
+    if(!trainingSpeedSlider || !trainingSpeedLabel) return;
+    trainingSpeedSlider.value = trainingSpeed;
+    // Continuous label straight from the same steps/sec the engine actually
+    // uses, so what's displayed always matches what's happening — every
+    // tick of the slider shows a genuinely different number, growing
+    // smoothly (multiplicatively) instead of jumping between fixed words.
+    const sps = trainingStepsPerSec();
+    trainingSpeedLabel.textContent = sps < 10
+      ? `${sps.toFixed(1)} צעדים/שנייה`
+      : sps < 1000
+        ? `${Math.round(sps)} צעדים/שנייה`
+        : `${(sps/1000).toFixed(1)}k צעדים/שנייה`;
+    trainingSpeedSlider.setAttribute('aria-valuetext', `${sps.toFixed(1)} צעדים בשנייה`);
+  }
+  if(trainingSpeedSlider){
+    trainingSpeedSlider.addEventListener('input', ()=>{
+      trainingSpeed = +trainingSpeedSlider.value;
+      updateTrainingSpeedUI();
+    });
+  }
+  updateTrainingSpeedUI();
 
   // =====================================================================
   // Shared mode switching
@@ -1451,12 +1543,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           drawMaze(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){ drawMaze(); drawChart(); }
+          runTrainingBudgetThrottled('maze', learnStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){ drawMaze(); drawChart(); }
         } else {
           drawMaze(); drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -2329,8 +2421,8 @@
           if(phase==='race') drawRace(); else drawLot();
           drawChart();
         } else if(isTraining){
-          runTrainingBudget(doStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){
+          runTrainingBudgetThrottled('rope', doStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){
             if(phase==='race') drawRace(); else drawLot();
             drawChart();
           }
@@ -2338,7 +2430,7 @@
           if(phase==='race') drawRace(); else drawLot();
           drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -2873,12 +2965,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           drawSnake(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){ drawSnake(); drawChart(); }
+          runTrainingBudgetThrottled('snake', learnStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){ drawSnake(); drawChart(); }
         } else {
           drawSnake(); drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -3274,12 +3366,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
+          runTrainingBudgetThrottled('pong', learnStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -3649,12 +3741,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
+          runTrainingBudgetThrottled('cartpole', learnStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -4035,12 +4127,12 @@
           if(frameCounter % evalFrameInterval === 0) learnStep();
           draw(); drawChart();
         } else if(isTraining){
-          runTrainingBudget(learnStep, TRAIN_BUDGET_MS);
-          if(frameCounter % TRAIN_RENDER_EVERY === 0){ draw(); drawChart(); }
+          runTrainingBudgetThrottled('flappy', learnStep, trainingBudgetMs());
+          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
         } else {
           draw(); drawChart();
         }
-        if(!isTraining || frameCounter % TRAIN_RENDER_EVERY === 0) updateStats();
+        if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
     }
@@ -4195,7 +4287,7 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ffd23f'],[2,'#a06cff']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,420,420);const g=140;ctx.strokeStyle='#3a3f5c';ctx.lineWidth=10;ctx.lineCap='round';for(let i=1;i<3;i++){ctx.beginPath();ctx.moveTo(i*g,25);ctx.lineTo(i*g,395);ctx.stroke();ctx.beginPath();ctx.moveTo(25,i*g);ctx.lineTo(395,i*g);ctx.stroke();}for(let i=0;i<9;i++){const x=i%3*g+70,y=(i/3|0)*g+70,r=38;if(board[i]===1){ctx.strokeStyle='#ffd23f';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();}else if(board[i]===2){ctx.strokeStyle='#a06cff';ctx.lineWidth=13;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,85);if((frameCounter++ % TRAIN_RENDER_EVERY)===0)render();}else{render();}requestAnimationFrame(frame);}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,trainingBudgetMs());if((frameCounter++ % trainingRenderEvery())===0)render();}else{render();}requestAnimationFrame(frame);}
     speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('tictactoe');newGame();});
@@ -4233,7 +4325,7 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ff5c7a'],[2,'#ffd23f']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,560,520);const pad=24,cell=Math.min((560-2*pad)/COLS,(520-2*pad)/ROWS),bw=COLS*cell,bh=ROWS*cell,x0=(560-bw)/2,y0=(520-bh)/2;ctx.fillStyle='#202435';ctx.fillRect(x0-10,y0-10,bw+20,bh+20);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=x0+c*cell+cell/2,y=y0+r*cell+cell/2;ctx.fillStyle='#151824';ctx.beginPath();ctx.arc(x,y,cell*.37,0,Math.PI*2);ctx.fill();if(board[r][c]){ctx.fillStyle=board[r][c]===1?'#ff5c7a':'#ffd23f';ctx.beginPath();ctx.arc(x,y,cell*.30,0,Math.PI*2);ctx.fill();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,85);if((frameCounter++ % TRAIN_RENDER_EVERY)===0)render();}else{render();}requestAnimationFrame(frame);}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,trainingBudgetMs());if((frameCounter++ % trainingRenderEvery())===0)render();}else{render();}requestAnimationFrame(frame);}
     speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('connect4');newGame();});

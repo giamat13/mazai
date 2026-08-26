@@ -145,6 +145,22 @@
   .chart-wrap{ background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; }
   .chart-wrap .label{font-size:.68rem;color:var(--muted);margin-bottom:4px;}
   canvas.chart{width:100%;display:block;}
+  .selfplay-badge{
+    display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:999px;
+    background:#202435cc; border:1px solid var(--border); color:var(--accent);
+    font-size:.74rem; font-weight:700;
+  }
+  .game-status{
+    min-height:34px; display:flex; align-items:center; justify-content:center;
+    padding:7px 12px; border-radius:10px; background:var(--panel2);
+    border:1px solid var(--border); font-size:.85rem; font-weight:700; text-align:center;
+  }
+  .player-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .player-pill{
+    padding:5px 9px;border-radius:8px;background:var(--panel2);border:1px solid var(--border);
+    font-size:.72rem;color:var(--muted);
+  }
+  .player-pill.active{color:var(--text);border-color:var(--accent);box-shadow:0 0 0 1px #6c8cff33 inset;}
   .footer-note{
     text-align:center; color:var(--muted); font-size:.72rem; margin-top:18px;
     max-width:600px; margin-left:auto; margin-right:auto;
@@ -186,6 +202,16 @@
         <span class="emoji">🐦</span>
         <span class="title">פלאפי בירד</span>
         <span class="desc">סוכן AI לומד מתי לקפוץ כדי לחמוק בין צינורות מתקרבים, בלי לפגוע בהם או ליפול לקרקע</span>
+      </button>
+      <button class="mode-card" data-mode="tictactoe">
+        <span class="emoji">❌⭕</span>
+        <span class="title">איקס־עיגול — Self-Play</span>
+        <span class="desc">שני סוכני Q-Learning משחקים זה מול זה; היריב לומד ומשנה אסטרטגיה יחד עם הסוכן</span>
+      </button>
+      <button class="mode-card" data-mode="connect4">
+        <span class="emoji">🔴🟡</span>
+        <span class="title">Connect4 — Self-Play</span>
+        <span class="desc">שני סוכנים לומדים לנצח אחד את השני ב-Connect4, בלי יריב קבוע ובלי ידע מוקדם</span>
       </button>
     </div>
   </div>
@@ -774,6 +800,113 @@
         הציפור נופלת כל הזמן בהשפעת כוח כבידה, ובכל צעד יכולה "לקפוץ" (דחיפה כלפי מעלה) או לא לעשות כלום. צינורות עם פער נעים מימין לשמאל בקצב קבוע; מעבר דרך הפער נותן תגמול ונחשב הצלחה, ופגיעה בצינור או ברצפה/תקרה מסיימת את האפיזודה בעונש. הסוכן "רואה" מצב מצומצם: גובה הציפור, מהירותה האנכית, המרחק לצינור הבא וההפרש בין גובה הציפור למרכז הפער. רמת הקושי קובעת את רוחב הפער ואת מהירות הצינורות.
       </p>
     </div>
+    <!-- ================= TIC-TAC-TOE SELF-PLAY SECTION ================= -->
+    <div id="tictactoeSection" style="display:none;">
+      <h1>❌⭕ Mazai — איקס־עיגול / Self-Play</h1>
+      <p class="subtitle">שני סוכני Q-Learning משחקים זה מול זה ולומדים מהתוצאות של היריב — לא מול סביבה סטטית</p>
+      <div class="layout">
+        <div class="board-card">
+          <div class="selfplay-badge">🧠↔🧠 היריב לומד תוך כדי משחק</div>
+          <canvas id="tttCanvas" class="board"></canvas>
+          <div class="player-pills">
+            <span class="player-pill" id="tttP1Pill">❌ שחקן A — לומד</span>
+            <span class="player-pill" id="tttP2Pill">⭕ שחקן B — לומד</span>
+          </div>
+          <div class="game-status" id="tttStatus">מכינים משחק…</div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות Self-Play</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">משחקים</div><div class="value" id="tttStatGames">0</div></div>
+              <div class="stat"><div class="label">Epsilon</div><div class="value" id="tttStatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">ניצחונות A ❌</div><div class="value" id="tttStatA">0</div></div>
+              <div class="stat"><div class="label">ניצחונות B ⭕</div><div class="value" id="tttStatB">0</div></div>
+              <div class="stat"><div class="label">תיקו</div><div class="value" id="tttStatDraw">0</div></div>
+              <div class="stat"><div class="label">מדד אחרון</div><div class="value" id="tttStatResult">—</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="label">ניצחונות/תיקו ב-50 המשחקים האחרונים</div>
+            <canvas id="tttChart" class="chart" height="80"></canvas>
+          </div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="tttBtnToggleTrain">⏸ עצור אימון</button>
+              <button class="btn-secondary" id="tttBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="tttBtnEval">🧪 מצב בדיקה</button>
+            </div>
+            <div class="eval-overlay" id="tttEvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="tttEvalSpeedWrap" style="display:none;">
+              מהירות משחק: <b id="tttEvalSpeedVal">8.0</b> מהלכים/שנייה
+              <input type="range" id="tttEvalSpeedSlider" min="1" max="100" value="30">
+            </label>
+            <div class="row"><button class="btn-secondary" id="tttBtnNewGame">🎲 משחק חדש</button></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row"><div class="param-head"><span>קצב למידה (α)</span><b id="tttAlphaVal">0.20</b></div><input type="range" id="tttAlphaSlider" min="1" max="100" value="20"></div>
+            <div class="param-row"><div class="param-head"><span>discount (γ)</span><b id="tttGammaVal">0.90</b></div><input type="range" id="tttGammaSlider" min="1" max="99" value="90"></div>
+            <div class="param-row"><div class="param-head"><span>קצב דעיכת epsilon</span><b id="tttDecayVal">0.995</b></div><input type="range" id="tttDecaySlider" min="900" max="999" value="995"></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">בכל משחק יש שתי טבלאות Q נפרדות: אחת לאיקס ואחת לעיגול. שני השחקנים מתחילים ללא ידע ומעדכנים את המדיניות שלהם מתוצאות המשחקים שלהם. אחרי כל משחק ה-epsilon יורד בהדרגה, כך שההתנהגות עוברת מחקירה לניצול הידע שנצבר. מצב הבדיקה מציג את שתי המדיניות הנלמדות זו מול זו.</p>
+    </div>
+
+    <!-- ================= CONNECT4 SELF-PLAY SECTION ================= -->
+    <div id="connect4Section" style="display:none;">
+      <h1>🔴🟡 Mazai — Connect4 / Self-Play</h1>
+      <p class="subtitle">שני סוכנים לומדים אחד מהשני בעזרת משחק מלא — היריב אינו קבוע ולכן האסטרטגיה משתנה לאורך האימון</p>
+      <div class="layout">
+        <div class="board-card">
+          <div class="selfplay-badge">🧠↔🧠 שני מוחות לומדים במקביל</div>
+          <canvas id="c4Canvas" class="board"></canvas>
+          <div class="player-pills">
+            <span class="player-pill" id="c4P1Pill">🔴 שחקן A — לומד</span>
+            <span class="player-pill" id="c4P2Pill">🟡 שחקן B — לומד</span>
+          </div>
+          <div class="game-status" id="c4Status">מכינים משחק…</div>
+        </div>
+        <div class="panel">
+          <div>
+            <h2>📊 סטטיסטיקות Self-Play</h2>
+            <div class="stats-grid">
+              <div class="stat"><div class="label">משחקים</div><div class="value" id="c4StatGames">0</div></div>
+              <div class="stat"><div class="label">Epsilon</div><div class="value" id="c4StatEpsilon">1.00</div></div>
+              <div class="stat"><div class="label">ניצחונות A 🔴</div><div class="value" id="c4StatA">0</div></div>
+              <div class="stat"><div class="label">ניצחונות B 🟡</div><div class="value" id="c4StatB">0</div></div>
+              <div class="stat"><div class="label">תיקו</div><div class="value" id="c4StatDraw">0</div></div>
+              <div class="stat"><div class="label">מדד אחרון</div><div class="value" id="c4StatResult">—</div></div>
+            </div>
+          </div>
+          <div class="chart-wrap"><div class="label">תוצאות 50 המשחקים האחרונים</div><canvas id="c4Chart" class="chart" height="80"></canvas></div>
+          <div>
+            <h2>⚙️ בקרה</h2>
+            <div class="row" style="margin-bottom:10px;">
+              <button class="btn-primary" id="c4BtnToggleTrain">⏸ עצור אימון</button>
+              <button class="btn-secondary" id="c4BtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="c4BtnEval">🧪 מצב בדיקה</button>
+            </div>
+            <div class="eval-overlay" id="c4EvalOverlay"><div class="bar"></div></div>
+            <label class="field" id="c4EvalSpeedWrap" style="display:none;">
+              מהירות משחק: <b id="c4EvalSpeedVal">8.0</b> מהלכים/שנייה
+              <input type="range" id="c4EvalSpeedSlider" min="1" max="100" value="30">
+            </label>
+            <div class="row"><button class="btn-secondary" id="c4BtnNewGame">🎲 משחק חדש</button></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row"><div class="param-head"><span>קצב למידה (α)</span><b id="c4AlphaVal">0.12</b></div><input type="range" id="c4AlphaSlider" min="1" max="100" value="12"></div>
+            <div class="param-row"><div class="param-head"><span>discount (γ)</span><b id="c4GammaVal">0.95</b></div><input type="range" id="c4GammaSlider" min="1" max="99" value="95"></div>
+            <div class="param-row"><div class="param-head"><span>קצב דעיכת epsilon</span><b id="c4DecayVal">0.997</b></div><input type="range" id="c4DecaySlider" min="900" max="999" value="997"></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Connect4 מציג את רעיון "היריב הלומד": שחקן A ושחקן B מחזיקים Q-table נפרד, וכל אחד מעדכן את המדיניות שלו לפי התוצאה מול היריב הנוכחי. כאשר A משתפר, B פוגש סביבה אסטרטגית חדשה — ואז B מגיב ולומד גם הוא. המשחק רץ כולו בדפדפן.</p>
+    </div>
+
   </div>
 
 <script>
@@ -836,7 +969,7 @@
   // =====================================================================
   // Shared mode switching
   // =====================================================================
-  let currentMode = null; // 'maze' | 'racepark' | 'snake' | 'pong' | 'cartpole' | 'flappy'
+  let currentMode = null; // existing games + 'tictactoe' | 'connect4'
   const modeSelect = document.getElementById('modeSelect');
   const appWrap = document.getElementById('appWrap');
   const mazeSection = document.getElementById('mazeSection');
@@ -845,6 +978,8 @@
   const pongSection = document.getElementById('pongSection');
   const cartpoleSection = document.getElementById('cartpoleSection');
   const flappySection = document.getElementById('flappySection');
+  const tictactoeSection = document.getElementById('tictactoeSection');
+  const connect4Section = document.getElementById('connect4Section');
 
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -857,12 +992,16 @@
       pongSection.style.display = currentMode==='pong' ? 'block' : 'none';
       cartpoleSection.style.display = currentMode==='cartpole' ? 'block' : 'none';
       flappySection.style.display = currentMode==='flappy' ? 'block' : 'none';
+      tictactoeSection.style.display = currentMode==='tictactoe' ? 'block' : 'none';
+      connect4Section.style.display = currentMode==='connect4' ? 'block' : 'none';
       if(currentMode==='maze') MazeApp.ensureStarted();
       if(currentMode==='racepark') RaceParkApp.ensureStarted();
       if(currentMode==='snake') SnakeApp.ensureStarted();
       if(currentMode==='pong') PongApp.ensureStarted();
       if(currentMode==='cartpole') CartPoleApp.ensureStarted();
       if(currentMode==='flappy') FlappyApp.ensureStarted();
+      if(currentMode==='tictactoe') TicTacToeApp.ensureStarted();
+      if(currentMode==='connect4') Connect4App.ensureStarted();
     });
   });
   document.getElementById('btnBackToMenu').addEventListener('click', ()=>{
@@ -4013,6 +4152,83 @@
     }
 
     return { ensureStarted };
+
+  })();
+
+  // =====================================================================
+  // TIC-TAC-TOE SELF-PLAY APP
+  // =====================================================================
+  const TicTacToeApp = (function(){
+    let started=false,training=true,evalMode=false,board=Array(9).fill(0),player=1,gameOver=false;
+    let Q1=Object.create(null),Q2=Object.create(null),episode=0,epsilon=1,ALPHA=.20,GAMMA=.90,EPS_DECAY=.995;
+    let wins1=0,wins2=0,draws=0,resultHistory=[],lastState=[null,null],lastAction=[null,null],nextMoveAt=0;
+    let evalSavedEpsilon=null,evalSavedTraining=null;
+    const maxQEntries=12000;
+    const canvas=document.getElementById('tttCanvas'),ctx=canvas.getContext('2d'),status=document.getElementById('tttStatus');
+    const p1Pill=document.getElementById('tttP1Pill'),p2Pill=document.getElementById('tttP2Pill');
+    const gamesEl=document.getElementById('tttStatGames'),epsEl=document.getElementById('tttStatEpsilon'),aEl=document.getElementById('tttStatA'),bEl=document.getElementById('tttStatB'),dEl=document.getElementById('tttStatDraw'),rEl=document.getElementById('tttStatResult');
+    const chart=document.getElementById('tttChart'),cctx=chart.getContext('2d'),btnTrain=document.getElementById('tttBtnToggleTrain'),btnReset=document.getElementById('tttBtnResetQ'),btnEval=document.getElementById('tttBtnEval'),evalOverlay=document.getElementById('tttEvalOverlay'),speedWrap=document.getElementById('tttEvalSpeedWrap'),speedSlider=document.getElementById('tttEvalSpeedSlider'),speedVal=document.getElementById('tttEvalSpeedVal'),btnNew=document.getElementById('tttBtnNewGame');
+    const alphaSlider=document.getElementById('tttAlphaSlider'),alphaVal=document.getElementById('tttAlphaVal'),gammaSlider=document.getElementById('tttGammaSlider'),gammaVal=document.getElementById('tttGammaVal'),decaySlider=document.getElementById('tttDecaySlider'),decayVal=document.getElementById('tttDecayVal');
+    canvas.width=420;canvas.height=420;chart.width=260;chart.height=80;
+    const key=s=>s.join(''),legal=s=>{const m=[];for(let i=0;i<9;i++)if(s[i]===0)m.push(i);return m;},qs=(t,s)=>t[s]||(t[s]=Array(9).fill(0));
+    function winner(b){for(const [a,c,d] of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[a]&&b[a]===b[c]&&b[a]===b[d])return b[a];return b.every(Boolean)?3:0;}
+    function choose(t,b,explore){const ms=legal(b);if(!ms.length)return null;if(explore&&Math.random()<epsilon)return ms[(Math.random()*ms.length)|0];const q=qs(t,key(b));let best=ms[0],v=q[best];for(const a of ms.slice(1))if(q[a]>v){v=q[a];best=a;}return best;}
+    function updatePrior(p,next){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
+    function finish(w){gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (❌) ניצח':w===2?'🏆 שחקן B (⭕) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
+    function newGame(){board=Array(9).fill(0);player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];status.textContent='🧠 משחק חדש — שני השחקנים בוחרים לפי המדיניות שלהם';render();}
+    function step(){if(gameOver){newGame();return;}const p=player,state=board.slice();updatePrior(p,state);const a=choose(p===1?Q1:Q2,state,!evalMode);if(a===null){finish(3);return;}lastState[p-1]=key(state);lastAction[p-1]=a;board[a]=p;const w=winner(board);if(w){finish(w);return;}player=3-player;}
+    function trim(t){const ks=Object.keys(t);if(ks.length>maxQEntries)for(let i=0;i<ks.length-maxQEntries;i++)delete t[ks[i]];}
+    function persist(){trim(Q1);trim(Q2);saveGameState('tictactoe',{version:1,Q1,Q2,episode,epsilon,wins1,wins2,draws,resultHistory,ALPHA,GAMMA,EPS_DECAY});}
+    function load(){const s=loadGameState('tictactoe');if(s&&s.Q1&&s.Q2){Q1=Object.assign(Object.create(null),s.Q1);Q2=Object.assign(Object.create(null),s.Q2);episode=s.episode||0;epsilon=s.epsilon===undefined?1:s.epsilon;wins1=s.wins1||0;wins2=s.wins2||0;draws=s.draws||0;resultHistory=Array.isArray(s.resultHistory)?s.resultHistory:[];ALPHA=s.ALPHA||ALPHA;GAMMA=s.GAMMA||GAMMA;EPS_DECAY=s.EPS_DECAY||EPS_DECAY;}alphaSlider.value=Math.round(ALPHA*100);gammaSlider.value=Math.round(GAMMA*100);decaySlider.value=Math.round(EPS_DECAY*1000);syncParams();newGame();}
+    function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
+    function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ffd23f'],[2,'#a06cff']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
+    function render(){ctx.clearRect(0,0,420,420);const g=140;ctx.strokeStyle='#3a3f5c';ctx.lineWidth=10;ctx.lineCap='round';for(let i=1;i<3;i++){ctx.beginPath();ctx.moveTo(i*g,25);ctx.lineTo(i*g,395);ctx.stroke();ctx.beginPath();ctx.moveTo(25,i*g);ctx.lineTo(395,i*g);ctx.stroke();}for(let i=0;i<9;i++){const x=i%3*g+70,y=(i/3|0)*g+70,r=38;if(board[i]===1){ctx.strokeStyle='#ffd23f';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();}else if(board[i]===2){ctx.strokeStyle='#a06cff';ctx.lineWidth=13;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}}else if(training){runTrainingBudget(step,3.5);}render();requestAnimationFrame(frame);}
+    speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
+    btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
+    btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('tictactoe');newGame();});
+    btnNew.addEventListener('click',newGame);
+    btnEval.addEventListener('click',()=>{evalMode=!evalMode;if(evalMode){evalSavedEpsilon=epsilon;evalSavedTraining=training;epsilon=0;training=false;speedWrap.style.display='flex';evalOverlay.classList.add('show');btnEval.textContent='⏹ צא ממצב בדיקה';btnEval.classList.add('active');}else{epsilon=evalSavedEpsilon??epsilon;training=evalSavedTraining??false;evalOverlay.classList.remove('show');btnEval.textContent='🧪 מצב בדיקה';btnEval.classList.remove('active');newGame();}});
+    alphaSlider.addEventListener('input',syncParams);gammaSlider.addEventListener('input',syncParams);decaySlider.addEventListener('input',syncParams);
+    function ensureStarted(){if(started)return;started=true;load();requestAnimationFrame(frame);}return{ensureStarted};
+  })();
+
+  // =====================================================================
+  // CONNECT4 SELF-PLAY APP
+  // =====================================================================
+  const Connect4App = (function(){
+    let started=false,training=true,evalMode=false,ROWS=6,COLS=7,board=Array.from({length:6},()=>Array(7).fill(0)),player=1,gameOver=false;
+    let Q1=Object.create(null),Q2=Object.create(null),episode=0,epsilon=1,ALPHA=.12,GAMMA=.95,EPS_DECAY=.997,wins1=0,wins2=0,draws=0,resultHistory=[],lastState=[null,null],lastAction=[null,null],nextMoveAt=0;
+    let evalSavedEpsilon=null,evalSavedTraining=null;const maxQEntries=9000;
+    const canvas=document.getElementById('c4Canvas'),ctx=canvas.getContext('2d'),status=document.getElementById('c4Status');
+    const p1Pill=document.getElementById('c4P1Pill'),p2Pill=document.getElementById('c4P2Pill');
+    const gamesEl=document.getElementById('c4StatGames'),epsEl=document.getElementById('c4StatEpsilon'),aEl=document.getElementById('c4StatA'),bEl=document.getElementById('c4StatB'),dEl=document.getElementById('c4StatDraw'),rEl=document.getElementById('c4StatResult'),chart=document.getElementById('c4Chart'),cctx=chart.getContext('2d');
+    const btnTrain=document.getElementById('c4BtnToggleTrain'),btnReset=document.getElementById('c4BtnResetQ'),btnEval=document.getElementById('c4BtnEval'),evalOverlay=document.getElementById('c4EvalOverlay'),speedWrap=document.getElementById('c4EvalSpeedWrap'),speedSlider=document.getElementById('c4EvalSpeedSlider'),speedVal=document.getElementById('c4EvalSpeedVal'),btnNew=document.getElementById('c4BtnNewGame');
+    const alphaSlider=document.getElementById('c4AlphaSlider'),alphaVal=document.getElementById('c4AlphaVal'),gammaSlider=document.getElementById('c4GammaSlider'),gammaVal=document.getElementById('c4GammaVal'),decaySlider=document.getElementById('c4DecaySlider'),decayVal=document.getElementById('c4DecayVal');
+    canvas.width=560;canvas.height=520;chart.width=260;chart.height=80;
+    const key=b=>b.flat().join(''),legal=b=>{const m=[];for(let c=0;c<COLS;c++)if(b[0][c]===0)m.push(c);return m;},qs=(t,s)=>t[s]||(t[s]=Array(COLS).fill(0));
+    function clone(b){return b.map(r=>r.slice());}
+    function drop(b,c,p){for(let r=ROWS-1;r>=0;r--)if(b[r][c]===0){b[r][c]=p;return r;}return -1;}
+    function win(b,p){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(b[r][c]===p){if(c+3<COLS&&b[r][c+1]===p&&b[r][c+2]===p&&b[r][c+3]===p)return 1;if(r+3<ROWS&&b[r+1][c]===p&&b[r+2][c]===p&&b[r+3][c]===p)return 1;if(r+3<ROWS&&c+3<COLS&&b[r+1][c+1]===p&&b[r+2][c+2]===p&&b[r+3][c+3]===p)return 1;if(r+3<ROWS&&c-3>=0&&b[r+1][c-1]===p&&b[r+2][c-2]===p&&b[r+3][c-3]===p)return 1;}return 0;}
+    function choose(t,b,explore){const ms=legal(b);if(!ms.length)return null;if(explore&&Math.random()<epsilon)return ms[(Math.random()*ms.length)|0];const q=qs(t,key(b));let best=ms[0],v=q[best];for(const m of ms.slice(1))if(q[m]>v){v=q[m];best=m;}return best;}
+    function updatePrior(p,next){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
+    function finish(w){gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (🔴) ניצח':w===2?'🏆 שחקן B (🟡) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
+    function newGame(){board=Array.from({length:ROWS},()=>Array(COLS).fill(0));player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];status.textContent='🧠 משחק חדש — שני השחקנים בוחרים עמודה לפי המדיניות שלהם';render();}
+    function step(){if(gameOver){newGame();return;}const p=player,state=clone(board);updatePrior(p,state);const a=choose(p===1?Q1:Q2,state,!evalMode);if(a===null){finish(3);return;}lastState[p-1]=key(state);lastAction[p-1]=a;drop(board,a,p);if(win(board,p)){finish(p);return;}if(!legal(board).length){finish(3);return;}player=3-player;}
+    function trim(t){const ks=Object.keys(t);if(ks.length>maxQEntries)for(let i=0;i<ks.length-maxQEntries;i++)delete t[ks[i]];}
+    function persist(){trim(Q1);trim(Q2);saveGameState('connect4',{version:1,Q1,Q2,episode,epsilon,wins1,wins2,draws,resultHistory,ALPHA,GAMMA,EPS_DECAY});}
+    function load(){const s=loadGameState('connect4');if(s&&s.Q1&&s.Q2){Q1=Object.assign(Object.create(null),s.Q1);Q2=Object.assign(Object.create(null),s.Q2);episode=s.episode||0;epsilon=s.epsilon===undefined?1:s.epsilon;wins1=s.wins1||0;wins2=s.wins2||0;draws=s.draws||0;resultHistory=Array.isArray(s.resultHistory)?s.resultHistory:[];ALPHA=s.ALPHA||ALPHA;GAMMA=s.GAMMA||GAMMA;EPS_DECAY=s.EPS_DECAY||EPS_DECAY;}alphaSlider.value=Math.round(ALPHA*100);gammaSlider.value=Math.round(GAMMA*100);decaySlider.value=Math.round(EPS_DECAY*1000);syncParams();newGame();}
+    function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
+    function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ff5c7a'],[2,'#ffd23f']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
+    function render(){ctx.clearRect(0,0,560,520);const pad=24,cell=Math.min((560-2*pad)/COLS,(520-2*pad)/ROWS),bw=COLS*cell,bh=ROWS*cell,x0=(560-bw)/2,y0=(520-bh)/2;ctx.fillStyle='#202435';ctx.fillRect(x0-10,y0-10,bw+20,bh+20);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=x0+c*cell+cell/2,y=y0+r*cell+cell/2;ctx.fillStyle='#151824';ctx.beginPath();ctx.arc(x,y,cell*.37,0,Math.PI*2);ctx.fill();if(board[r][c]){ctx.fillStyle=board[r][c]===1?'#ff5c7a':'#ffd23f';ctx.beginPath();ctx.arc(x,y,cell*.30,0,Math.PI*2);ctx.fill();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
+    function frame(ts){if(evalMode){const speed=1+(+speedSlider.value-1)/99*15;if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}}else if(training){runTrainingBudget(step,3.5);}render();requestAnimationFrame(frame);}
+    speedSlider.addEventListener('input',()=>speedVal.textContent=(1+(+speedSlider.value-1)/99*15).toFixed(1));
+    btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
+    btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('connect4');newGame();});
+    btnNew.addEventListener('click',newGame);
+    btnEval.addEventListener('click',()=>{evalMode=!evalMode;if(evalMode){evalSavedEpsilon=epsilon;evalSavedTraining=training;epsilon=0;training=false;speedWrap.style.display='flex';evalOverlay.classList.add('show');btnEval.textContent='⏹ צא ממצב בדיקה';btnEval.classList.add('active');}else{epsilon=evalSavedEpsilon??epsilon;training=evalSavedTraining??false;evalOverlay.classList.remove('show');btnEval.textContent='🧪 מצב בדיקה';btnEval.classList.remove('active');newGame();}});
+    alphaSlider.addEventListener('input',syncParams);gammaSlider.addEventListener('input',syncParams);decaySlider.addEventListener('input',syncParams);
+    function ensureStarted(){if(started)return;started=true;load();requestAnimationFrame(frame);}return{ensureStarted};
   })();
 
 })();

@@ -124,6 +124,7 @@
     border-radius:9px; padding:7px 14px; font-size:.8rem; cursor:pointer; font-family:inherit; font-weight:600;
   }
   .eval-btn.active{ background:var(--accent2); border-color:var(--accent2); color:#12101c; }
+  .eval-btn, .eval-overlay{ display:none !important; }
   .eval-overlay{
     position:relative; height:5px; border-radius:4px; background:var(--panel2);
     overflow:hidden; margin:6px 0 2px; display:none;
@@ -234,6 +235,12 @@
         <span id="trainingSpeedLabel">הכי מהיר</span>
         <input type="range" id="trainingSpeedSlider" min="1" max="100" value="100" aria-label="מהירות אימון">
         <span class="training-speed-end">🐢 ממש איטי</span><span class="training-speed-end">🚀 הכי מהיר</span>
+      </div>
+      <div class="training-speed-control" title="שולט במהירות סימולציית התצוגה">
+        <span>👁 מהירות תצוגה</span>
+        <span id="displaySpeedLabel">הכי מהיר</span>
+        <input type="range" id="displaySpeedSlider" min="1" max="100" value="100" aria-label="מהירות תצוגה">
+        <span class="training-speed-end">🐢 איטי</span><span class="training-speed-end">🚀 מהיר</span>
       </div>
     </div>
 
@@ -992,23 +999,47 @@
     _trainAccum[id] = owed - count;
     return count;
   }
+  function resetTrainingTiming(){
+    for(const id of Object.keys(_trainAccum)) delete _trainAccum[id];
+    for(const id of Object.keys(_trainLastTs)) delete _trainLastTs[id];
+  }
   // Backwards-compatible wrappers so every simulator's existing frame() loop keeps working unchanged.
   function runTrainingBudget(stepFn, budgetMs){ return runTrainingSteps('__default', stepFn); }
   function runTrainingBudgetThrottled(id, stepFn, budgetMs, ts){ return runTrainingSteps(id, stepFn, ts); }
   function trainingRenderEvery(){
-    // Purely a rendering-frequency choice now — actual training speed no
-    // longer depends on how often we redraw the canvas, only on how often
-    // we're willing to spend time painting instead of stepping.
-    const sps = trainingStepsPerSec();
-    if(sps <= 15) return 1;
-    if(sps <= 60) return 2;
-    if(sps <= 300) return 4;
-    if(sps <= 1500) return 8;
-    if(sps <= 8000) return 15;
-    return 30;
+    return displayRenderEvery();
+  }
+  function displayStepsPerSec(){
+    const t = (displaySpeed - 1) / 99;
+    return TRAIN_SPEED_MIN_SPS * Math.pow(TRAIN_SPEED_MAX_SPS / TRAIN_SPEED_MIN_SPS, t);
+  }
+  function displayRenderEvery(){
+    return Math.max(1, Math.round(60/displayStepsPerSec()));
+  }
+  const _displayAccum = Object.create(null);
+  const _displayLastTs = Object.create(null);
+  function runDisplaySteps(id, stepFn, ts){
+    const now = ts !== undefined ? ts : performance.now();
+    const last = _displayLastTs[id];
+    _displayLastTs[id] = now;
+    let dt = last === undefined ? 0 : (now-last)/1000;
+    if(dt < 0) dt = 0;
+    if(dt > 0.25) dt = 0.25;
+    const owed = (_displayAccum[id] || 0) + displayStepsPerSec()*dt;
+    const count = Math.floor(owed);
+    for(let i=0;i<count;i++) stepFn();
+    _displayAccum[id] = owed-count;
+    return count;
+  }
+  function resetDisplayTiming(){
+    for(const id of Object.keys(_displayAccum)) delete _displayAccum[id];
+    for(const id of Object.keys(_displayLastTs)) delete _displayLastTs[id];
   }
   const trainingSpeedSlider = document.getElementById('trainingSpeedSlider');
   const trainingSpeedLabel = document.getElementById('trainingSpeedLabel');
+  const displaySpeedSlider = document.getElementById('displaySpeedSlider');
+  const displaySpeedLabel = document.getElementById('displaySpeedLabel');
+  let displaySpeed = 100;
   function updateTrainingSpeedUI(){
     if(!trainingSpeedSlider || !trainingSpeedLabel) return;
     trainingSpeedSlider.value = trainingSpeed;
@@ -1027,10 +1058,26 @@
   if(trainingSpeedSlider){
     trainingSpeedSlider.addEventListener('input', ()=>{
       trainingSpeed = +trainingSpeedSlider.value;
+      resetTrainingTiming();
       updateTrainingSpeedUI();
     });
   }
   updateTrainingSpeedUI();
+  function updateDisplaySpeedUI(){
+    if(!displaySpeedSlider || !displaySpeedLabel) return;
+    displaySpeedSlider.value = displaySpeed;
+    const sps = displayStepsPerSec();
+    displaySpeedLabel.textContent = sps < 10 ? `${sps.toFixed(1)} צעדים/שנייה` : sps < 1000 ? `${Math.round(sps)} צעדים/שנייה` : `${(sps/1000).toFixed(1)}k צעדים/שנייה`;
+    displaySpeedSlider.setAttribute('aria-valuetext', `${sps.toFixed(1)} צעדים בשנייה`);
+  }
+  if(displaySpeedSlider){
+    displaySpeedSlider.addEventListener('input', ()=>{
+      displaySpeed = +displaySpeedSlider.value;
+      resetDisplayTiming();
+      updateDisplaySpeedUI();
+    });
+  }
+  updateDisplaySpeedUI();
 
   // =====================================================================
   // Shared mode switching
@@ -1089,6 +1136,7 @@
     let maze = [];
     let Q = {};
     let agent = {r:0,c:0};
+    let displayAgent = {r:0,c:0}, displayTrail = [], displayMask = 0, displaySteps = 0;
     let trail = [];
     let episode = 0;
     let stepsInEpisode = 0;
@@ -1310,6 +1358,10 @@
     }
 
     function finishEpisode(success){
+      if(evalMode){
+        agent = {r:0,c:0}; stepsInEpisode = 0; trail = []; collectedMask = 0;
+        return;
+      }
       episode++;
       successHistory.push(success?1:0);
       if(successHistory.length>50) successHistory.shift();
@@ -1495,17 +1547,33 @@
       }
     }
 
-    function frame(){
+    function advanceDisplay(){
+      if(!displayAgent || !maze.length) return;
+      const trainingState = {agent, trail, stepsInEpisode, collectedMask};
+      agent = displayAgent; trail = displayTrail; stepsInEpisode = displaySteps; collectedMask = displayMask;
+      const previousEvalMode = evalMode, previousEpsilon = epsilon;
+      evalMode = true; epsilon = 0; learnStep();
+      displayAgent = agent; displayTrail = trail; displaySteps = stepsInEpisode; displayMask = collectedMask;
+      ({agent, trail, stepsInEpisode, collectedMask} = trainingState);
+      evalMode = previousEvalMode; epsilon = previousEpsilon;
+    }
+    function drawDisplay(){
+      const trainingState = {agent, trail, collectedMask};
+      agent = displayAgent; trail = displayTrail; collectedMask = displayMask;
+      drawMaze();
+      ({agent, trail, collectedMask} = trainingState);
+    }
+
+    function frame(ts){
       if(currentMode==='maze'){
         frameCounter++;
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) learnStep();
-          drawMaze(); drawChart();
-        } else if(isTraining){
+        if(isTraining){
           runTrainingBudgetThrottled('maze', learnStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){ drawMaze(); drawChart(); }
-        } else {
-          drawMaze(); drawChart();
+        }
+        if(displaySpeed!==trainingSpeed) runDisplaySteps('maze', advanceDisplay, ts);
+        if(!isTraining || displaySpeed!==trainingSpeed || frameCounter % trainingRenderEvery() === 0){
+          if(displaySpeed!==trainingSpeed) drawDisplay(); else drawMaze();
+          drawChart();
         }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
@@ -1573,6 +1641,7 @@
       Q = {}; V = {};
       agent = {r:0,c:0};
       trail = [];
+      displayAgent = {r:0,c:0}; displayTrail = []; displayMask = 0; displaySteps = 0;
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; goalsReached = 0;
       successHistory = []; stepsHistory = [];
@@ -1584,6 +1653,7 @@
       agent = {r:0,c:0};
       trail = [];
       collectedMask = 0;
+      displayAgent = {r:0,c:0}; displayTrail = []; displayMask = 0; displaySteps = 0;
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; goalsReached = 0;
       successHistory = []; stepsHistory = [];
@@ -2088,6 +2158,11 @@
 
     let parkQ = {}, parkV = {};
     let pcar = {x:0,y:0,angle:0,speed:0};
+    let displayCar = {...car}, displayPcar = {...pcar}, displayPhase = 'race';
+    let displayRaceTrail = [], displayParkTrail = [], displayRaceSteps = 0, displayParkSteps = 0;
+    let displayRaceLastAction = 0, displayParkLastAction = 0;
+    let displayPrevTheta = 0, displayAngleUnwrapped = 0;
+    let suppressPhaseUI = false;
     let startX=30, startY=45;
     let parkTrail = [];
     let parkStepsInEpisode = 0;
@@ -2199,6 +2274,12 @@
       parkTrail = [];
       parkStepsInEpisode = 0;
     }
+    function syncDisplayRacePark(){
+      displayCar={...car}; displayPcar={...pcar}; displayPhase=phase;
+      displayRaceTrail=[]; displayParkTrail=[]; displayRaceSteps=0; displayParkSteps=0;
+      displayRaceLastAction=0; displayParkLastAction=0;
+      displayPrevTheta=prevTheta; displayAngleUnwrapped=angleUnwrapped;
+    }
 
     function drawLot(){
       parkCtx.clearRect(0,0,LOT_W,LOT_H);
@@ -2292,6 +2373,7 @@
     // =========================== PHASE ORCHESTRATION ===========================
     function setPhase(p){
       phase = p;
+      if(suppressPhaseUI) return;
       const isRace = phase==='race';
       raceCanvas.style.display = isRace ? 'block' : 'none';
       parkCanvas.style.display = isRace ? 'none' : 'block';
@@ -2318,6 +2400,7 @@
     }
 
     function finishRound(success, totalSteps){
+      if(evalMode){ resetCar(); resetParkCar(); setPhase('race'); return; }
       episode++;
       successHistory.push(success?1:0);
       if(successHistory.length>50) successHistory.shift();
@@ -2363,22 +2446,42 @@
       chartCtx.stroke();
     }
 
-    function frame(){
+    function advanceDisplay(){
+      const trainingState = {phase, car, pcar, prevTheta, angleUnwrapped, raceTrail, parkTrail, raceStepsInEpisode, parkStepsInEpisode, raceLastAction, parkLastAction};
+      phase=displayPhase; car=displayCar; pcar=displayPcar; raceTrail=displayRaceTrail; parkTrail=displayParkTrail;
+      prevTheta=displayPrevTheta; angleUnwrapped=displayAngleUnwrapped;
+      raceStepsInEpisode=displayRaceSteps; parkStepsInEpisode=displayParkSteps;
+      raceLastAction=displayRaceLastAction; parkLastAction=displayParkLastAction;
+      const previousEvalMode = evalMode, previousEpsilon = epsilon;
+      evalMode = true; epsilon = 0; suppressPhaseUI = true;
+      if(phase==='race') raceLearnStep(); else parkLearnStep();
+      suppressPhaseUI = false;
+      displayPhase=phase; displayCar=car; displayPcar=pcar; displayRaceTrail=raceTrail; displayParkTrail=parkTrail;
+      displayPrevTheta=prevTheta; displayAngleUnwrapped=angleUnwrapped;
+      displayRaceSteps=raceStepsInEpisode; displayParkSteps=parkStepsInEpisode;
+      displayRaceLastAction=raceLastAction; displayParkLastAction=parkLastAction;
+      ({phase, car, pcar, prevTheta, angleUnwrapped, raceTrail, parkTrail, raceStepsInEpisode, parkStepsInEpisode, raceLastAction, parkLastAction} = trainingState);
+      evalMode = previousEvalMode; epsilon = previousEpsilon;
+    }
+    function drawDisplay(){
+      const trainingState = {phase, car, pcar, prevTheta, angleUnwrapped, raceTrail, parkTrail, raceLastAction, parkLastAction};
+      phase=displayPhase; car=displayCar; pcar=displayPcar; raceTrail=displayRaceTrail; parkTrail=displayParkTrail;
+      prevTheta=displayPrevTheta; angleUnwrapped=displayAngleUnwrapped;
+      raceLastAction=displayRaceLastAction; parkLastAction=displayParkLastAction;
+      if(phase==='race') drawRace(); else drawLot();
+      ({phase, car, pcar, prevTheta, angleUnwrapped, raceTrail, parkTrail, raceLastAction, parkLastAction} = trainingState);
+    }
+
+    function frame(ts){
       if(currentMode==='racepark'){
         frameCounter++;
         const doStep = ()=>{ if(phase==='race') raceLearnStep(); else parkLearnStep(); };
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) doStep();
-          if(phase==='race') drawRace(); else drawLot();
-          drawChart();
-        } else if(isTraining){
-          runTrainingBudgetThrottled('rope', doStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){
-            if(phase==='race') drawRace(); else drawLot();
-            drawChart();
-          }
-        } else {
-          if(phase==='race') drawRace(); else drawLot();
+        if(isTraining){
+          runTrainingBudgetThrottled('racepark', doStep, trainingBudgetMs(), ts);
+        }
+        if(displaySpeed!==trainingSpeed) runDisplaySteps('racepark', advanceDisplay, ts);
+        if(!isTraining || displaySpeed!==trainingSpeed || frameCounter % trainingRenderEvery()===0){
+          if(displaySpeed!==trainingSpeed) drawDisplay(); else if(phase==='race') drawRace(); else drawLot();
           drawChart();
         }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
@@ -2449,6 +2552,7 @@
       resetCar();
       resetParkCar();
       setPhase('race');
+      syncDisplayRacePark();
     }
 
     function resetLearning(){
@@ -2459,6 +2563,7 @@
       resetCar();
       resetParkCar();
       setPhase('race');
+      syncDisplayRacePark();
       persist();
     }
 
@@ -2570,6 +2675,7 @@
     let dir = 'E';         // current facing direction
     let food = {r:0,c:0};
     let trail = [];
+    let displaySnake = [], displayDir = 'E', displayFood = {r:0,c:0}, displayTrail = [], displaySteps = 0;
 
     let Q = {};
     let episode = 0;
@@ -2795,6 +2901,7 @@
     }
 
     function finishEpisode(){
+      if(evalMode){ resetSnake(); stepsInEpisode = 0; trail = []; return; }
       episode++;
       const len = snake.length;
       scoreHistory.push(len);
@@ -2813,6 +2920,9 @@
       snake = [{r:cr,c:cc}];
       dir = DIRS4[Math.floor(Math.random()*4)];
       placeFood();
+    }
+    function syncDisplaySnake(){
+      displaySnake = snake.map(segment=>({...segment})); displayDir = dir; displayFood = {...food}; displayTrail = []; displaySteps = 0;
     }
 
     function sizeCanvas(){
@@ -2901,18 +3011,30 @@
       confFill.style.background = 'hsl('+Math.round(pct*1.2)+',70%,55%)';
     }
 
-    function frame(){
+    function advanceDisplay(){
+      const trainingState = {snake, dir, food, trail, stepsInEpisode};
+      snake = displaySnake; dir = displayDir; food = displayFood; trail = displayTrail; stepsInEpisode = displaySteps;
+      const previousEvalMode = evalMode, previousEpsilon = epsilon;
+      evalMode = true; epsilon = 0; learnStep();
+      displaySnake = snake; displayDir = dir; displayFood = food; displayTrail = trail; displaySteps = stepsInEpisode;
+      ({snake, dir, food, trail, stepsInEpisode} = trainingState);
+      evalMode = previousEvalMode; epsilon = previousEpsilon;
+    }
+    function drawDisplay(){
+      const trainingState = {snake, dir, food, trail};
+      snake = displaySnake; dir = displayDir; food = displayFood; trail = displayTrail;
+      drawSnake();
+      ({snake, dir, food, trail} = trainingState);
+    }
+
+    function frame(ts){
       if(currentMode==='snake'){
         frameCounter++;
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) learnStep();
-          drawSnake(); drawChart();
-        } else if(isTraining){
+        if(isTraining){
           runTrainingBudgetThrottled('snake', learnStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){ drawSnake(); drawChart(); }
-        } else {
-          drawSnake(); drawChart();
         }
+        if(displaySpeed!==trainingSpeed) runDisplaySteps('snake', advanceDisplay, ts);
+        if(!isTraining || displaySpeed!==trainingSpeed){ if(displaySpeed!==trainingSpeed) drawDisplay(); else drawSnake(); drawChart(); }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
@@ -2942,6 +3064,7 @@
       scoreHistory = []; lenHistory = [];
       resetSnake();
       trail = [];
+      syncDisplaySnake();
       sizeCanvas();
     }
 
@@ -2952,6 +3075,7 @@
       scoreHistory = []; lenHistory = [];
       resetSnake();
       trail = [];
+      syncDisplaySnake();
       persist();
     }
 
@@ -3056,6 +3180,7 @@
     let paddleX = 24;
     let ball = {x:0,y:0,vx:0,vy:0};
     let trail = [];
+    let displayPaddleY = 0, displayBall = {x:0,y:0,vx:0,vy:0}, displayTrail = [], displaySteps = 0;
 
     let Q = {};
     let episode = 0;
@@ -3157,6 +3282,7 @@
       resetBall();
       trail = [];
     }
+    function syncDisplayPong(){ displayPaddleY=paddleY; displayBall={...ball}; displayTrail=[]; displaySteps=0; }
 
     function doStep(actionIdx){
       const diff = DIFF[difficultyKey] || DIFF.medium;
@@ -3206,6 +3332,7 @@
     }
 
     function finishEpisode(){
+      if(evalMode){ rally = 0; stepsInEpisode = 0; resetRound(); return; }
       episode++;
       rallyHistory.push(rally);
       if(rallyHistory.length>50) rallyHistory.shift();
@@ -3216,6 +3343,7 @@
       rally = 0;
       stepsInEpisode = 0;
       resetRound();
+      syncDisplayPong();
     }
 
     function sizeCanvas(){
@@ -3294,18 +3422,31 @@
       confFill.style.background = 'hsl('+Math.round(pct*1.2)+',70%,55%)';
     }
 
-    function frame(){
+    function advanceDisplay(){
+      if(!displayBall.vx) { displayPaddleY = paddleY; displayBall = {...ball}; displayTrail = []; displaySteps = 0; }
+      const trainingState = {paddleY, ball, trail, stepsInEpisode, rally};
+      paddleY = displayPaddleY; ball = displayBall; trail = displayTrail; stepsInEpisode = displaySteps; rally = 0;
+      const previousEvalMode = evalMode, previousEpsilon = epsilon;
+      evalMode = true; epsilon = 0; learnStep();
+      displayPaddleY = paddleY; displayBall = ball; displayTrail = trail; displaySteps = stepsInEpisode;
+      ({paddleY, ball, trail, stepsInEpisode, rally} = trainingState);
+      evalMode = previousEvalMode; epsilon = previousEpsilon;
+    }
+    function drawDisplay(){
+      const trainingState = {paddleY, ball, trail};
+      paddleY = displayPaddleY; ball = displayBall; trail = displayTrail;
+      draw();
+      ({paddleY, ball, trail} = trainingState);
+    }
+
+    function frame(ts){
       if(currentMode==='pong'){
         frameCounter++;
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) learnStep();
-          draw(); drawChart();
-        } else if(isTraining){
+        if(isTraining){
           runTrainingBudgetThrottled('pong', learnStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
-        } else {
-          draw(); drawChart();
         }
+        if(displaySpeed!==trainingSpeed) runDisplaySteps('pong', advanceDisplay, ts);
+        if(!isTraining || displaySpeed!==trainingSpeed){ if(displaySpeed!==trainingSpeed) drawDisplay(); else draw(); drawChart(); }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
@@ -3333,6 +3474,7 @@
       rallyHistory = []; chartHistory = [];
       sizeCanvas();
       resetRound();
+      syncDisplayPong();
     }
 
     function resetLearning(){
@@ -3444,6 +3586,7 @@
 
     let x=0, xDot=0, theta=0, thetaDot=0;
     let trailX = [];
+    let displayX=0, displayXDot=0, displayTheta=0, displayThetaDot=0, displayTrailX=[];
 
     let Q = {};
     let episode = 0;
@@ -3557,6 +3700,7 @@
     }
 
     function finishEpisode(){
+      if(evalMode){ stepsInEpisode = 0; resetPole(); return; }
       episode++;
       stepsHistory.push(stepsInEpisode);
       if(stepsHistory.length>50) stepsHistory.shift();
@@ -3576,6 +3720,7 @@
       thetaDot = (Math.random()-0.5)*0.1;
       trailX = [];
     }
+    function syncDisplayPole(){ displayX=x; displayXDot=xDot; displayTheta=theta; displayThetaDot=thetaDot; displayTrailX=[]; }
 
     function sizeCanvas(){
       canvas.width = 560; canvas.height = 400;
@@ -3662,18 +3807,30 @@
       statGoals.textContent = solvedCount;
     }
 
-    function frame(){
+    function advanceDisplay(){
+      const trainingState = {x, xDot, theta, thetaDot, trailX, stepsInEpisode};
+      x=displayX; xDot=displayXDot; theta=displayTheta; thetaDot=displayThetaDot; trailX=displayTrailX; stepsInEpisode=0;
+      const previousEvalMode = evalMode, previousEpsilon = epsilon;
+      evalMode = true; epsilon = 0; learnStep();
+      displayX=x; displayXDot=xDot; displayTheta=theta; displayThetaDot=thetaDot; displayTrailX=trailX;
+      ({x, xDot, theta, thetaDot, trailX, stepsInEpisode} = trainingState);
+      evalMode = previousEvalMode; epsilon = previousEpsilon;
+    }
+    function drawDisplay(){
+      const trainingState = {x, xDot, theta, trailX};
+      x=displayX; xDot=displayXDot; theta=displayTheta; trailX=displayTrailX;
+      draw();
+      ({x, xDot, theta, trailX} = trainingState);
+    }
+
+    function frame(ts){
       if(currentMode==='cartpole'){
         frameCounter++;
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) learnStep();
-          draw(); drawChart();
-        } else if(isTraining){
+        if(isTraining){
           runTrainingBudgetThrottled('cartpole', learnStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
-        } else {
-          draw(); drawChart();
         }
+        if(displaySpeed!==trainingSpeed) runDisplaySteps('cartpole', advanceDisplay, ts);
+        if(!isTraining || displaySpeed!==trainingSpeed){ if(displaySpeed!==trainingSpeed) drawDisplay(); else draw(); drawChart(); }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
@@ -3700,6 +3857,7 @@
       stepsHistory = []; chartHistory = [];
       sizeCanvas();
       resetPole();
+      syncDisplayPole();
     }
 
     function resetLearning(){
@@ -3708,6 +3866,7 @@
       bestSteps = 0; solvedCount = 0;
       stepsHistory = []; chartHistory = [];
       resetPole();
+      syncDisplayPole();
       persist();
     }
 
@@ -3808,6 +3967,12 @@
     let bird = {y:H/2, vy:0};
     let pipes = []; // [{x, gapY}]
     let trail = [];
+    let displayBird = {y:H/2, vy:0};
+    let displayPipes = [];
+    let displayTrail = [];
+    let displayScore = 0;
+    let displayStepsInEpisode = 0;
+    let displayNextMoveAt = 0;
 
     let Q = {};
     let episode = 0;
@@ -3947,20 +4112,26 @@
       return {reward, done};
     }
 
-    function learnStep(){
+    function learnStep(shouldLearn=true, shouldRecord=true){
       const state0 = getState();
       const action = chooseAction(state0);
       const q = getQ(state0);
       const {reward, done} = doStep(action);
       const state1 = done ? null : getState();
       const nextMax = done ? 0 : Math.max(...getQ(state1));
-      if(!evalMode) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      if(shouldLearn) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       stepsInEpisode++;
       if(showTrail){ trail.push({x:BIRD_X, y:bird.y}); if(trail.length>60) trail.shift(); }
-      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode(shouldRecord);
     }
 
-    function finishEpisode(){
+    function finishEpisode(shouldRecord=true){
+      if(!shouldRecord){
+        stepsInEpisode = 0;
+        score = 0;
+        resetRound();
+        return;
+      }
       episode++;
       scoreHistory.push(score);
       if(scoreHistory.length>50) scoreHistory.shift();
@@ -3976,6 +4147,38 @@
       pipes = [];
       trail = [];
       spawnPipeIfNeeded();
+    }
+
+    function resetDisplayRound(){
+      displayBird = {y:H/2, vy:0};
+      displayPipes = [{x:W, gapY:gapH/2+30+Math.random()*(H-(gapH+60)), passed:false}];
+      displayTrail = [];
+      displayScore = 0;
+      displayStepsInEpisode = 0;
+    }
+
+    function advanceDisplay(ts){
+      const trainState = {bird, pipes, trail, score, stepsInEpisode};
+      bird = displayBird;
+      pipes = displayPipes;
+      trail = displayTrail;
+      score = displayScore;
+      stepsInEpisode = displayStepsInEpisode;
+      const previousEvalMode = evalMode;
+      const previousEpsilon = epsilon;
+      evalMode = true;
+      epsilon = 0;
+      learnStep(false, false);
+      draw();
+      epsilon = previousEpsilon;
+      evalMode = previousEvalMode;
+      displayBird = bird;
+      displayPipes = pipes;
+      displayTrail = trail;
+      displayScore = score;
+      displayStepsInEpisode = stepsInEpisode;
+      ({bird, pipes, trail, score, stepsInEpisode} = trainState);
+      displayNextMoveAt = ts;
     }
 
     function draw(){
@@ -4044,18 +4247,16 @@
       updateConfidence();
     }
 
-    function frame(){
+    function frame(ts){
       if(currentMode==='flappy'){
         frameCounter++;
-        if(isTraining && evalMode){
-          if(frameCounter % evalFrameInterval === 0) learnStep();
-          draw(); drawChart();
-        } else if(isTraining){
+        if(isTraining){
           runTrainingBudgetThrottled('flappy', learnStep, trainingBudgetMs());
-          if(frameCounter % trainingRenderEvery() === 0){ draw(); drawChart(); }
-        } else {
-          draw(); drawChart();
         }
+        const showSeparateDisplay = displaySpeed !== trainingSpeed;
+        if(showSeparateDisplay) runDisplaySteps('flappy', advanceDisplay, ts);
+        if(!showSeparateDisplay && frameCounter % trainingRenderEvery() === 0) draw();
+        if(frameCounter % trainingRenderEvery() === 0) drawChart();
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
@@ -4083,6 +4284,7 @@
       scoreHistory = []; chartHistory = [];
       sizeCanvas();
       resetRound();
+      resetDisplayRound();
     }
 
     function resetLearning(){
@@ -4091,6 +4293,7 @@
       bestScore = 0; totalPipes = 0;
       scoreHistory = []; chartHistory = [];
       resetRound();
+      resetDisplayRound();
       persist();
     }
 
@@ -4183,6 +4386,7 @@
   // =====================================================================
   const TicTacToeApp = (function(){
     let started=false,training=true,evalMode=false,board=Array(9).fill(0),player=1,gameOver=false;
+    let displayBoard=Array(9).fill(0),displayPlayer=1,displayGameOver=false,displayLastState=[null,null],displayLastAction=[null,null];
     let Q1=Object.create(null),Q2=Object.create(null),episode=0,epsilon=1,ALPHA=.20,GAMMA=.90,EPS_DECAY=.995;
     let wins1=0,wins2=0,draws=0,resultHistory=[],lastState=[null,null],lastAction=[null,null],nextMoveAt=0,frameCounter=0;
     let evalSavedEpsilon=null,evalSavedTraining=null;
@@ -4196,8 +4400,8 @@
     const key=s=>s.join(''),legal=s=>{const m=[];for(let i=0;i<9;i++)if(s[i]===0)m.push(i);return m;},qs=(t,s)=>t[s]||(t[s]=Array(9).fill(0));
     function winner(b){for(const [a,c,d] of [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[a]&&b[a]===b[c]&&b[a]===b[d])return b[a];return b.every(Boolean)?3:0;}
     function choose(t,b,explore){const ms=legal(b);if(!ms.length)return null;if(explore&&Math.random()<epsilon)return ms[(Math.random()*ms.length)|0];const q=qs(t,key(b));let best=ms[0],v=q[best];for(const a of ms.slice(1))if(q[a]>v){v=q[a];best=a;}return best;}
-    function updatePrior(p,next){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
-    function finish(w){gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (❌) ניצח':w===2?'🏆 שחקן B (⭕) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
+    function updatePrior(p,next){if(evalMode)return;const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
+    function finish(w){if(evalMode){board=Array(9).fill(0);player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];return;}gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (❌) ניצח':w===2?'🏆 שחקן B (⭕) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
     function newGame(){board=Array(9).fill(0);player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];status.textContent=evalMode?'❌ התור שלך — בחר משבצת':'🧠 משחק חדש — שני השחקנים בוחרים לפי המדיניות שלהם';render();}
     function step(){if(gameOver){newGame();return;}const p=player,state=board.slice();updatePrior(p,state);const a=choose(p===1?Q1:Q2,state,!evalMode);if(a===null){finish(3);return;}lastState[p-1]=key(state);lastAction[p-1]=a;board[a]=p;const w=winner(board);if(w){finish(w);return;}player=3-player;}
     function trim(t){const ks=Object.keys(t);if(ks.length>maxQEntries)for(let i=0;i<ks.length-maxQEntries;i++)delete t[ks[i]];}
@@ -4206,7 +4410,9 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ffd23f'],[2,'#a06cff']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,420,420);const g=140;ctx.strokeStyle='#3a3f5c';ctx.lineWidth=10;ctx.lineCap='round';for(let i=1;i<3;i++){ctx.beginPath();ctx.moveTo(i*g,25);ctx.lineTo(i*g,395);ctx.stroke();ctx.beginPath();ctx.moveTo(25,i*g);ctx.lineTo(395,i*g);ctx.stroke();}for(let i=0;i<9;i++){const x=i%3*g+70,y=(i/3|0)*g+70,r=38;if(board[i]===1){ctx.strokeStyle='#ffd23f';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);ctx.stroke();}else if(board[i]===2){ctx.strokeStyle='#a06cff';ctx.lineWidth=13;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=trainingStepsPerSec();if(player===2&&ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,trainingBudgetMs());if((frameCounter++ % trainingRenderEvery())===0)render();}else{render();}requestAnimationFrame(frame);}
+    function advanceDisplay(){const saved={board,player,gameOver,lastState,lastAction};board=displayBoard;player=displayPlayer;gameOver=displayGameOver;lastState=displayLastState;lastAction=displayLastAction;const old=evalMode;evalMode=true;step();displayBoard=board;displayPlayer=player;displayGameOver=gameOver;displayLastState=lastState;displayLastAction=lastAction;({board,player,gameOver,lastState,lastAction}=saved);evalMode=old;}
+    function drawDisplay(){const saved={board,player,gameOver};board=displayBoard;player=displayPlayer;gameOver=displayGameOver;render();({board,player,gameOver}=saved);}
+    function frame(ts){if(training)runTrainingBudgetThrottled('tictactoe',step,trainingBudgetMs(),ts);if(displaySpeed!==trainingSpeed)runDisplaySteps('tictactoe',advanceDisplay,ts);if(!training||displaySpeed!==trainingSpeed)displaySpeed!==trainingSpeed?drawDisplay():render();requestAnimationFrame(frame);}
     canvas.addEventListener('pointerdown',event=>{if(!evalMode||gameOver||player!==1)return;const rect=canvas.getBoundingClientRect(),x=Number.isFinite(event.offsetX)?event.offsetX:event.clientX-rect.left,y=Number.isFinite(event.offsetY)?event.offsetY:event.clientY-rect.top,col=Math.floor(x/(rect.width/3)),row=Math.floor(y/(rect.height/3)),action=row*3+col;if(action<0||action>8||board[action]!==0)return;lastState[0]=key(board);lastAction[0]=action;board[action]=1;const w=winner(board);if(w){finish(w);render();return;}player=2;render();setTimeout(()=>{if(evalMode&&!gameOver&&player===2){step();render();}},120);});
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('tictactoe');newGame();});
@@ -4221,6 +4427,7 @@
   // =====================================================================
   const Connect4App = (function(){
     let started=false,training=true,evalMode=false,ROWS=6,COLS=7,board=Array.from({length:6},()=>Array(7).fill(0)),player=1,gameOver=false;
+    let displayBoard=Array.from({length:6},()=>Array(7).fill(0)),displayPlayer=1,displayGameOver=false,displayLastState=[null,null],displayLastAction=[null,null];
     let Q1=Object.create(null),Q2=Object.create(null),episode=0,epsilon=1,ALPHA=.12,GAMMA=.95,EPS_DECAY=.997,wins1=0,wins2=0,draws=0,resultHistory=[],lastState=[null,null],lastAction=[null,null],nextMoveAt=0;
     let evalSavedEpsilon=null,evalSavedTraining=null,frameCounter=0;const maxQEntries=9000;
     const canvas=document.getElementById('c4Canvas'),ctx=canvas.getContext('2d'),status=document.getElementById('c4Status');
@@ -4234,8 +4441,8 @@
     function drop(b,c,p){for(let r=ROWS-1;r>=0;r--)if(b[r][c]===0){b[r][c]=p;return r;}return -1;}
     function win(b,p){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(b[r][c]===p){if(c+3<COLS&&b[r][c+1]===p&&b[r][c+2]===p&&b[r][c+3]===p)return 1;if(r+3<ROWS&&b[r+1][c]===p&&b[r+2][c]===p&&b[r+3][c]===p)return 1;if(r+3<ROWS&&c+3<COLS&&b[r+1][c+1]===p&&b[r+2][c+2]===p&&b[r+3][c+3]===p)return 1;if(r+3<ROWS&&c-3>=0&&b[r+1][c-1]===p&&b[r+2][c-2]===p&&b[r+3][c-3]===p)return 1;}return 0;}
     function choose(t,b,explore){const ms=legal(b);if(!ms.length)return null;if(explore&&Math.random()<epsilon)return ms[(Math.random()*ms.length)|0];const q=qs(t,key(b));let best=ms[0],v=q[best];for(const m of ms.slice(1))if(q[m]>v){v=q[m];best=m;}return best;}
-    function updatePrior(p,next){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
-    function finish(w){gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (🔴) ניצח':w===2?'🏆 שחקן B (🟡) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
+    function updatePrior(p,next){if(evalMode)return;const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)return;const q=qs(t,s0),ms=legal(next);let target=-.01;if(ms.length){const nq=qs(t,key(next));let mx=nq[ms[0]];for(const m of ms.slice(1))mx=Math.max(mx,nq[m]);target+=GAMMA*mx;}q[a]+=ALPHA*(target-q[a]);}
+    function finish(w){if(evalMode){board=Array.from({length:ROWS},()=>Array(COLS).fill(0));player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];return;}gameOver=true;if(w===1)wins1++;else if(w===2)wins2++;else draws++;resultHistory.push(w);if(resultHistory.length>50)resultHistory.shift();episode++;for(const p of [1,2]){const t=p===1?Q1:Q2,idx=p-1,s0=lastState[idx],a=lastAction[idx];if(s0===null)continue;const q=qs(t,s0),reward=w===3?0:(w===p?1:-1);q[a]+=ALPHA*(reward-q[a]);}epsilon=Math.max(.05,epsilon*EPS_DECAY);persist();rEl.textContent=w===1?'A ניצח':w===2?'B ניצח':'תיקו';status.textContent=w===1?'🏆 שחקן A (🔴) ניצח':w===2?'🏆 שחקן B (🟡) ניצח':'🤝 תיקו — שתי המדיניות קיבלו משוב';}
     function newGame(){board=Array.from({length:ROWS},()=>Array(COLS).fill(0));player=1;gameOver=false;lastState=[null,null];lastAction=[null,null];status.textContent='🧠 משחק חדש — שני השחקנים בוחרים עמודה לפי המדיניות שלהם';render();}
     function step(){if(gameOver){newGame();return;}const p=player,state=clone(board);updatePrior(p,state);const a=choose(p===1?Q1:Q2,state,!evalMode);if(a===null){finish(3);return;}lastState[p-1]=key(state);lastAction[p-1]=a;drop(board,a,p);if(win(board,p)){finish(p);return;}if(!legal(board).length){finish(3);return;}player=3-player;}
     function trim(t){const ks=Object.keys(t);if(ks.length>maxQEntries)for(let i=0;i<ks.length-maxQEntries;i++)delete t[ks[i]];}
@@ -4244,7 +4451,9 @@
     function syncParams(){ALPHA=+alphaSlider.value/100;GAMMA=+gammaSlider.value/100;EPS_DECAY=+decaySlider.value/1000;alphaVal.textContent=ALPHA.toFixed(2);gammaVal.textContent=GAMMA.toFixed(2);decayVal.textContent=EPS_DECAY.toFixed(3);}
     function drawChart(){cctx.clearRect(0,0,260,80);if(!resultHistory.length)return;for(const [res,col] of [[1,'#ff5c7a'],[2,'#ffd23f']]){cctx.strokeStyle=col;cctx.lineWidth=2;cctx.beginPath();for(let i=0;i<resultHistory.length;i++){const lo=Math.max(0,i-9),seg=resultHistory.slice(lo,i+1),v=seg.filter(x=>x===res).length/seg.length,x=i*(260/Math.max(1,resultHistory.length-1)),y=72-v*55;if(i)cctx.lineTo(x,y);else cctx.moveTo(x,y);}cctx.stroke();}}
     function render(){ctx.clearRect(0,0,560,520);const pad=24,cell=Math.min((560-2*pad)/COLS,(520-2*pad)/ROWS),bw=COLS*cell,bh=ROWS*cell,x0=(560-bw)/2,y0=(520-bh)/2;ctx.fillStyle='#202435';ctx.fillRect(x0-10,y0-10,bw+20,bh+20);for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=x0+c*cell+cell/2,y=y0+r*cell+cell/2;ctx.fillStyle='#151824';ctx.beginPath();ctx.arc(x,y,cell*.37,0,Math.PI*2);ctx.fill();if(board[r][c]){ctx.fillStyle=board[r][c]===1?'#ff5c7a':'#ffd23f';ctx.beginPath();ctx.arc(x,y,cell*.30,0,Math.PI*2);ctx.fill();}}gamesEl.textContent=episode;epsEl.textContent=epsilon.toFixed(3);aEl.textContent=wins1;bEl.textContent=wins2;dEl.textContent=draws;p1Pill.classList.toggle('active',!gameOver&&player===1);p2Pill.classList.toggle('active',!gameOver&&player===2);drawChart();}
-    function frame(ts){if(evalMode){const speed=trainingStepsPerSec();if(ts>=nextMoveAt){step();nextMoveAt=ts+1000/speed;}render();}else if(training){runTrainingBudget(step,trainingBudgetMs());if((frameCounter++ % trainingRenderEvery())===0)render();}else{render();}requestAnimationFrame(frame);}
+    function advanceDisplay(){const saved={board,player,gameOver,lastState,lastAction};board=displayBoard;player=displayPlayer;gameOver=displayGameOver;lastState=displayLastState;lastAction=displayLastAction;const old=evalMode;evalMode=true;step();displayBoard=board;displayPlayer=player;displayGameOver=gameOver;displayLastState=lastState;displayLastAction=lastAction;({board,player,gameOver,lastState,lastAction}=saved);evalMode=old;}
+    function drawDisplay(){const saved={board,player,gameOver};board=displayBoard;player=displayPlayer;gameOver=displayGameOver;render();({board,player,gameOver}=saved);}
+    function frame(ts){if(training)runTrainingBudgetThrottled('connect4',step,trainingBudgetMs(),ts);if(displaySpeed!==trainingSpeed)runDisplaySteps('connect4',advanceDisplay,ts);if(!training||displaySpeed!==trainingSpeed)displaySpeed!==trainingSpeed?drawDisplay():render();requestAnimationFrame(frame);}
     btnTrain.addEventListener('click',()=>{training=!training;btnTrain.textContent=training?'⏸ עצור אימון':'▶ התחל אימון';});
     btnReset.addEventListener('click',()=>{Q1=Object.create(null);Q2=Object.create(null);episode=0;epsilon=1;wins1=wins2=draws=0;resultHistory=[];clearGameState('connect4');newGame();});
     btnNew.addEventListener('click',newGame);

@@ -116,6 +116,32 @@
   label.field-inline{ display:flex; flex-direction:column; gap:5px; font-size:.72rem; color:var(--muted); flex:1; }
   input[type=range]{width:100%;accent-color:var(--accent);}
   .toggle-row{ display:flex; justify-content:space-between; align-items:center; font-size:.82rem; }
+  .param-row{ display:flex; flex-direction:column; gap:2px; font-size:.72rem; color:var(--muted); margin-bottom:8px; }
+  .param-row .param-head{ display:flex; justify-content:space-between; }
+  .param-row .param-head b{ color:var(--text); font-weight:600; }
+  .eval-btn{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    border-radius:9px; padding:7px 14px; font-size:.8rem; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .eval-btn.active{ background:var(--accent2); border-color:var(--accent2); color:#12101c; }
+  .eval-overlay{
+    position:relative; height:5px; border-radius:4px; background:var(--panel2);
+    overflow:hidden; margin:6px 0 2px; display:none;
+  }
+  .eval-overlay.show{ display:block; }
+  .eval-overlay .bar{
+    position:absolute; top:0; bottom:0; left:0; width:30%;
+    background:linear-gradient(90deg, var(--accent), var(--accent2));
+    animation: eval-sweep 0.7s ease-in-out;
+  }
+  @keyframes eval-sweep{ from{ left:-30%; } to{ left:100%; } }
+  .confidence-wrap{
+    background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .confidence-wrap .label{font-size:.68rem;color:var(--muted);}
+  .confidence-bar{ height:10px; border-radius:6px; background:#12142080; overflow:hidden; }
+  .confidence-bar .fill{ height:100%; border-radius:6px; transition:width .15s ease, background-color .15s ease; }
   .chart-wrap{ background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; }
   .chart-wrap .label{font-size:.68rem;color:var(--muted);margin-bottom:4px;}
   canvas.chart{width:100%;display:block;}
@@ -202,7 +228,9 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-primary" id="mzBtnToggleTrain">▶ התחל אימון</button>
               <button class="btn-secondary" id="mzBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="mzBtnEval">🧪 מצב בדיקה</button>
             </div>
+            <div class="eval-overlay" id="mzEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל מבוך
                 <select id="mzMazeSize">
@@ -245,6 +273,21 @@
             <div class="toggle-row"><span>הצג מפת חום (ערכי Q)</span><input type="checkbox" id="mzChkHeatmap" checked></div>
             <div class="toggle-row"><span>הצג חצי מדיניות נלמדת</span><input type="checkbox" id="mzChkPolicy" checked></div>
             <div class="toggle-row"><span>הצג נתיב אפיזודה נוכחית</span><input type="checkbox" id="mzChkTrail" checked></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="mzAlphaVal">0.15</b></div>
+              <input type="range" id="mzAlphaSlider" min="1" max="100" value="15">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="mzGammaVal">0.95</b></div>
+              <input type="range" id="mzGammaSlider" min="1" max="99" value="95">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="mzDecayVal">0.985</b></div>
+              <input type="range" id="mzDecaySlider" min="900" max="999" value="985">
+            </div>
           </div>
         </div>
       </div>
@@ -298,7 +341,9 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-primary" id="rpBtnToggleTrain">▶ התחל אימון</button>
               <button class="btn-secondary" id="rpBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="rpBtnEval">🧪 מצב בדיקה</button>
             </div>
+            <div class="eval-overlay" id="rpEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל מסלול+מגרש
                 <select id="rpSize">
@@ -327,6 +372,21 @@
             <div class="toggle-row"><span>הצג נתיב צבוע לפי מהירות</span><input type="checkbox" id="rpChkTrail" checked></div>
             <div class="toggle-row"><span>הצג חצי מדיניות נלמדת (בשלב המרוץ)</span><input type="checkbox" id="rpChkPolicy" checked></div>
             <div class="toggle-row"><span>הצג לוח מחוונים (HUD)</span><input type="checkbox" id="rpChkHud" checked></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="rpAlphaVal">0.20</b></div>
+              <input type="range" id="rpAlphaSlider" min="1" max="100" value="20">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="rpGammaVal">0.97</b></div>
+              <input type="range" id="rpGammaSlider" min="1" max="99" value="97">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="rpDecayVal">0.990</b></div>
+              <input type="range" id="rpDecaySlider" min="900" max="999" value="990">
+            </div>
           </div>
         </div>
       </div>
@@ -367,12 +427,18 @@
             <div class="label">אורך נחש לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
             <canvas id="snChart" class="chart" height="70"></canvas>
           </div>
+          <div class="confidence-wrap">
+            <div class="label">ביטחון הסוכן בהחלטה הנוכחית</div>
+            <div class="confidence-bar"><div class="fill" id="snConfFill" style="width:0%; background:#888;"></div></div>
+          </div>
           <div>
             <h2>⚙️ בקרה</h2>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-primary" id="snBtnToggleTrain">▶ התחל אימון</button>
               <button class="btn-secondary" id="snBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="snBtnEval">🧪 מצב בדיקה</button>
             </div>
+            <div class="eval-overlay" id="snEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל לוח
                 <select id="snBoardSize">
@@ -400,6 +466,21 @@
             <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="snChkTurbo"></div>
             <div class="toggle-row"><span>הצג נתיב תנועה אחרון</span><input type="checkbox" id="snChkTrail" checked></div>
             <div class="toggle-row"><span>מעבר דרך קירות (Wrap)</span><input type="checkbox" id="snChkWrap"></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="snAlphaVal">0.15</b></div>
+              <input type="range" id="snAlphaSlider" min="1" max="100" value="15">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="snGammaVal">0.90</b></div>
+              <input type="range" id="snGammaSlider" min="1" max="99" value="90">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="snDecayVal">0.990</b></div>
+              <input type="range" id="snDecaySlider" min="900" max="999" value="990">
+            </div>
           </div>
         </div>
       </div>
@@ -440,12 +521,18 @@
             <div class="label">חבטות ברצף לפי אפיזודה (מגמת למידה, גבוה=טוב)</div>
             <canvas id="pgChart" class="chart" height="70"></canvas>
           </div>
+          <div class="confidence-wrap">
+            <div class="label">ביטחון הסוכן בהחלטה הנוכחית</div>
+            <div class="confidence-bar"><div class="fill" id="pgConfFill" style="width:0%; background:#888;"></div></div>
+          </div>
           <div>
             <h2>⚙️ בקרה</h2>
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-primary" id="pgBtnToggleTrain">▶ התחל אימון</button>
               <button class="btn-secondary" id="pgBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="pgBtnEval">🧪 מצב בדיקה</button>
             </div>
+            <div class="eval-overlay" id="pgEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">גודל משקולת
                 <select id="pgPaddleSize">
@@ -471,6 +558,21 @@
             </label>
             <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="pgChkTurbo"></div>
             <div class="toggle-row"><span>הצג נתיב תנועת כדור אחרון</span><input type="checkbox" id="pgChkTrail" checked></div>
+          </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="pgAlphaVal">0.15</b></div>
+              <input type="range" id="pgAlphaSlider" min="1" max="100" value="15">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="pgGammaVal">0.90</b></div>
+              <input type="range" id="pgGammaSlider" min="1" max="99" value="90">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="pgDecayVal">0.985</b></div>
+              <input type="range" id="pgDecaySlider" min="900" max="999" value="985">
+            </div>
           </div>
         </div>
       </div>
@@ -516,7 +618,9 @@
             <div class="row" style="margin-bottom:10px;">
               <button class="btn-primary" id="cpBtnToggleTrain">▶ התחל אימון</button>
               <button class="btn-secondary" id="cpBtnResetQ">איפוס למידה</button>
+              <button class="eval-btn" id="cpBtnEval">🧪 מצב בדיקה</button>
             </div>
+            <div class="eval-overlay" id="cpEvalOverlay"><div class="bar"></div></div>
             <div class="row" style="margin-bottom:10px;">
               <label class="field-inline">רמת קושי
                 <select id="cpDifficulty">
@@ -536,6 +640,21 @@
             <div class="toggle-row"><span>⚡ מצב טורבו (בלי ציור בכל פריים — אימון מהיר במיוחד)</span><input type="checkbox" id="cpChkTurbo"></div>
             <div class="toggle-row"><span>הצג עקבות תנועת עגלה</span><input type="checkbox" id="cpChkTrail" checked></div>
           </div>
+          <div>
+            <h2>🎛️ פרמטרים</h2>
+            <div class="param-row">
+              <div class="param-head"><span>קצב למידה (α)</span><b id="cpAlphaVal">0.20</b></div>
+              <input type="range" id="cpAlphaSlider" min="1" max="100" value="20">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>discount (γ)</span><b id="cpGammaVal">0.98</b></div>
+              <input type="range" id="cpGammaSlider" min="1" max="99" value="98">
+            </div>
+            <div class="param-row">
+              <div class="param-head"><span>קצב דעיכת epsilon</span><b id="cpDecayVal">0.995</b></div>
+              <input type="range" id="cpDecaySlider" min="900" max="999" value="995">
+            </div>
+          </div>
         </div>
       </div>
       <p class="footer-note">
@@ -547,6 +666,24 @@
 <script>
 (function(){
   "use strict";
+
+  // =====================================================================
+  // Shared persistence (localStorage) — save/load Q-tables & training stats
+  // =====================================================================
+  const STORE_PREFIX = 'mazai_v1_';
+  function saveGameState(key, obj){
+    try{ localStorage.setItem(STORE_PREFIX+key, JSON.stringify(obj)); }
+    catch(e){ console.warn('mazai: save failed', key, e); }
+  }
+  function loadGameState(key){
+    try{
+      const raw = localStorage.getItem(STORE_PREFIX+key);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ console.warn('mazai: load failed', key, e); return null; }
+  }
+  function clearGameState(key){
+    try{ localStorage.removeItem(STORE_PREFIX+key); }catch(e){}
+  }
 
   // =====================================================================
   // Shared mode switching
@@ -600,7 +737,9 @@
     let episode = 0;
     let stepsInEpisode = 0;
     let epsilon = 1.0;
-    const EPS_MIN = 0.05, EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.95;
+    const EPS_MIN = 0.05;
+    let EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.95;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
     let maxStepsPerEpisode = rows*cols*3;
     let bestSteps = null, goalsReached = 0;
     let successHistory = [], stepsHistory = [];
@@ -637,6 +776,14 @@
 
     const btnToggleTrain = document.getElementById('mzBtnToggleTrain');
     const btnResetQ = document.getElementById('mzBtnResetQ');
+    const btnEval = document.getElementById('mzBtnEval');
+    const evalOverlay = document.getElementById('mzEvalOverlay');
+    const alphaSlider = document.getElementById('mzAlphaSlider');
+    const alphaVal = document.getElementById('mzAlphaVal');
+    const gammaSlider = document.getElementById('mzGammaSlider');
+    const gammaVal = document.getElementById('mzGammaVal');
+    const decaySlider = document.getElementById('mzDecaySlider');
+    const decayVal = document.getElementById('mzDecayVal');
     const btnNewMaze = document.getElementById('mzBtnNewMaze');
     const mazeSizeSel = document.getElementById('mzMazeSize');
     const difficultySel = document.getElementById('mzDifficulty');
@@ -796,8 +943,10 @@
       const v = getV(r0,c0,mask0);
       const {reward, done} = doStep(action);
       const nextMax = maxQ(agent.r, agent.c, collectedMask);
-      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
-      v[action]++;
+      if(!evalMode){
+        q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+        v[action]++;
+      }
       stepsInEpisode++;
       if(showTrail) trail.push({r:agent.r,c:agent.c});
       const success = agent.r===rows-1 && agent.c===cols-1 && (itemCount<=0 || collectedMask===FULL_MASK());
@@ -1003,7 +1152,52 @@
       requestAnimationFrame(frame);
     }
 
+    function serializeMaze(){
+      return {
+        rows, cols, maze, items, itemCount,
+        difficultyKey: difficultySel.value, mazeSizeKey: mazeSizeSel.value,
+        Q, episode, epsilon, bestSteps, goalsReached, successHistory, stepsHistory,
+        ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('maze', serializeMaze()); }
+    function restoreFromSaved(saved){
+      const validMaze = Array.isArray(saved.maze) && saved.rows>0 && saved.cols>0 &&
+        saved.maze.length === saved.rows &&
+        saved.maze.every(row => Array.isArray(row) && row.length === saved.cols &&
+          row.every(cell => cell && typeof cell.N==='boolean' && typeof cell.E==='boolean' && typeof cell.S==='boolean' && typeof cell.W==='boolean'));
+      if(!validMaze){
+        console.warn('mazai: saved maze state was invalid/corrupted, starting fresh');
+        clearGameState('maze');
+        return false;
+      }
+      rows = saved.rows; cols = saved.cols; maze = saved.maze; items = Array.isArray(saved.items) ? saved.items : [];
+      itemCount = saved.itemCount||0;
+      if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+      if(saved.mazeSizeKey) mazeSizeSel.value = saved.mazeSizeKey;
+      const diff = DIFF[difficultySel.value] || DIFF.medium;
+      wallPenalty = diff.wallPenalty; braidProb = diff.braid;
+      maxStepsPerEpisode = rows*cols*diff.stepsMult + itemCount*rows;
+      Q = (saved.Q && typeof saved.Q==='object') ? saved.Q : {}; V = {};
+      episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+      bestSteps = saved.bestSteps===undefined?null:saved.bestSteps;
+      goalsReached = saved.goalsReached||0;
+      successHistory = Array.isArray(saved.successHistory) ? saved.successHistory : [];
+      stepsHistory = Array.isArray(saved.stepsHistory) ? saved.stepsHistory : [];
+      if(saved.ALPHA) ALPHA = saved.ALPHA;
+      if(saved.GAMMA) GAMMA = saved.GAMMA;
+      if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+      agent = {r:0,c:0}; trail = []; collectedMask = 0; stepsInEpisode = 0;
+      itemLegend.style.display = itemCount>0 ? 'flex' : 'none';
+      statItemsWrap.style.display = itemCount>0 ? 'block' : 'none';
+      sizeCanvas();
+      return true;
+    }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
     function newMaze(){
+      clearGameState('maze');
       rows = cols = parseInt(mazeSizeSel.value, 10);
       const diff = DIFF[difficultySel.value] || DIFF.medium;
       wallPenalty = diff.wallPenalty;
@@ -1033,6 +1227,7 @@
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; goalsReached = 0;
       successHistory = []; stepsHistory = [];
+      persist();
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -1053,6 +1248,29 @@
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
     chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
+        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
+        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
+        isTraining = evalSavedTraining;
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -1061,7 +1279,15 @@
       showPolicy = chkPolicy.checked;
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
-      newMaze();
+      const saved = loadGameState('maze');
+      const restored = (saved && saved.maze) ? restoreFromSaved(saved) : false;
+      if(restored){
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      } else {
+        newMaze();
+      }
       requestAnimationFrame(frame);
     }
 
@@ -1093,6 +1319,14 @@
 
     const btnToggleTrain = document.getElementById('rpBtnToggleTrain');
     const btnResetQ = document.getElementById('rpBtnResetQ');
+    const btnEval = document.getElementById('rpBtnEval');
+    const evalOverlay = document.getElementById('rpEvalOverlay');
+    const alphaSlider = document.getElementById('rpAlphaSlider');
+    const alphaVal = document.getElementById('rpAlphaVal');
+    const gammaSlider = document.getElementById('rpGammaSlider');
+    const gammaVal = document.getElementById('rpGammaVal');
+    const decaySlider = document.getElementById('rpDecaySlider');
+    const decayVal = document.getElementById('rpDecayVal');
     const btnNewRound = document.getElementById('rpBtnNewRound');
     const sizeSel = document.getElementById('rpSize');
     const difficultySel = document.getElementById('rpDifficulty');
@@ -1109,7 +1343,9 @@
     let turboMode = false, frameCounter = 0;
     let showSensors = true, showTrail = true, showHud = true, showPolicy = true;
     let epsilon = 1.0;
-    const EPS_MIN = 0.01, EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
+    const EPS_MIN = 0.01;
+    let EPS_DECAY = 0.99, ALPHA = 0.2, GAMMA = 0.97;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
 
     // ---- round bookkeeping (a "round" = one full lap attempt + one park attempt) ----
     let phase = 'race'; // 'race' | 'park'
@@ -1243,8 +1479,10 @@
       const v = getRaceV(state0);
       const {reward, done, success} = doRaceStep(action);
       const state1 = getRaceState();
-      q[action] += ALPHA * (reward + GAMMA*raceMaxQ(state1) - q[action]);
-      v[action]++;
+      if(!evalMode){
+        q[action] += ALPHA * (reward + GAMMA*raceMaxQ(state1) - q[action]);
+        v[action]++;
+      }
       raceLastAction = action;
       raceStepsInEpisode++;
       if(showTrail) raceTrail.push({x:car.x, y:car.y, speed:car.speed});
@@ -1572,8 +1810,10 @@
       const v = getParkV(state0);
       const {reward, done, success} = doParkStep(action);
       const state1 = getParkState();
-      q[action] += ALPHA * (reward + GAMMA*parkMaxQ(state1) - q[action]);
-      v[action]++;
+      if(!evalMode){
+        q[action] += ALPHA * (reward + GAMMA*parkMaxQ(state1) - q[action]);
+        v[action]++;
+      }
       parkLastAction = action;
       parkStepsInEpisode++;
       if(showTrail) parkTrail.push({x:pcar.x, y:pcar.y, speed:pcar.speed});
@@ -1766,7 +2006,19 @@
       requestAnimationFrame(frame);
     }
 
+    function serializeRP(){
+      return {
+        sizeKey: sizeSel.value, difficultyKey: difficultySel.value,
+        raceQ, parkQ, episode, epsilon, bestRoundSteps, fullSuccesses,
+        successHistory, stepsHistory, ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('racepark', serializeRP()); }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
     function newRound(){
+      clearGameState('racepark');
       const sz = sizeSel.value;
       const diff = difficultySel.value;
       const rSz = RACE_SIZE_CFG[sz] || RACE_SIZE_CFG.medium;
@@ -1827,6 +2079,7 @@
       resetCar();
       resetParkCar();
       setPhase('race');
+      persist();
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -1847,6 +2100,29 @@
     chkPolicy.addEventListener('change', ()=>{ showPolicy = chkPolicy.checked; });
     chkHud.addEventListener('change', ()=>{ showHud = chkHud.checked; });
 
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
+        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
+        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
+        isTraining = evalSavedTraining;
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -1856,7 +2132,25 @@
       turboMode = chkTurbo.checked;
       showPolicy = chkPolicy.checked;
       showHud = chkHud.checked;
-      newRound();
+      const saved = loadGameState('racepark');
+      if(saved && saved.raceQ){
+        if(saved.sizeKey) sizeSel.value = saved.sizeKey;
+        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+        newRound(); // regenerates a fresh track/lot; sensor-based state means saved Q still generalizes
+        raceQ = saved.raceQ || {}; parkQ = saved.parkQ || {};
+        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+        bestRoundSteps = saved.bestRoundSteps===undefined?null:saved.bestRoundSteps;
+        fullSuccesses = saved.fullSuccesses||0;
+        successHistory = saved.successHistory||[]; stepsHistory = saved.stepsHistory||[];
+        if(saved.ALPHA) ALPHA = saved.ALPHA;
+        if(saved.GAMMA) GAMMA = saved.GAMMA;
+        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      } else {
+        newRound();
+      }
       requestAnimationFrame(frame);
     }
 
@@ -1884,7 +2178,9 @@
     let episode = 0;
     let stepsInEpisode = 0;
     let epsilon = 1.0;
-    const EPS_MIN = 0.01, EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
+    const EPS_MIN = 0.01;
+    let EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.9;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
     let maxStepsPerEpisode = 400;
     let bestLen = 1, foodEaten = 0;
     let scoreHistory = [], lenHistory = [];
@@ -1920,6 +2216,15 @@
 
     const btnToggleTrain = document.getElementById('snBtnToggleTrain');
     const btnResetQ = document.getElementById('snBtnResetQ');
+    const btnEval = document.getElementById('snBtnEval');
+    const evalOverlay = document.getElementById('snEvalOverlay');
+    const confFill = document.getElementById('snConfFill');
+    const alphaSlider = document.getElementById('snAlphaSlider');
+    const alphaVal = document.getElementById('snAlphaVal');
+    const gammaSlider = document.getElementById('snGammaSlider');
+    const gammaVal = document.getElementById('snGammaVal');
+    const decaySlider = document.getElementById('snDecaySlider');
+    const decayVal = document.getElementById('snDecayVal');
     const btnNewGame = document.getElementById('snBtnNewGame');
     const boardSizeSel = document.getElementById('snBoardSize');
     const difficultySel = document.getElementById('snDifficulty');
@@ -2086,7 +2391,7 @@
       const {reward, done} = doStep(action);
       const state1 = done ? null : getState();
       const nextMax = done ? 0 : Math.max(...getQ(state1));
-      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      if(!evalMode) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       stepsInEpisode++;
       if(showTrail) trail.push({r:snake[0].r,c:snake[0].c});
       if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
@@ -2188,6 +2493,15 @@
       const avg = scoreHistory.length ? (scoreHistory.reduce((a,b)=>a+b,0)/scoreHistory.length).toFixed(1) : '0';
       statAvg.textContent = avg;
       statGoals.textContent = foodEaten;
+      updateConfidence();
+    }
+
+    function updateConfidence(){
+      const q = getQ(getState());
+      const spread = Math.max(...q) - Math.min(...q);
+      const pct = Math.max(0, Math.min(100, Math.round((spread/8)*100)));
+      confFill.style.width = pct+'%';
+      confFill.style.background = 'hsl('+Math.round(pct*1.2)+',70%,55%)';
     }
 
     function frame(){
@@ -2203,7 +2517,19 @@
       requestAnimationFrame(frame);
     }
 
+    function serializeSnake(){
+      return {
+        boardSizeKey: boardSizeSel.value, difficultyKey: difficultySel.value, wrapMode,
+        Q, episode, epsilon, bestLen, foodEaten, scoreHistory, lenHistory,
+        ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('snake', serializeSnake()); }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
     function newGame(){
+      clearGameState('snake');
       cols = rows = parseInt(boardSizeSel.value, 10);
       difficultyKey = difficultySel.value;
       wrapMode = chkWrap.checked;
@@ -2225,6 +2551,7 @@
       scoreHistory = []; lenHistory = [];
       resetSnake();
       trail = [];
+      persist();
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -2243,6 +2570,29 @@
     chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
     chkWrap.addEventListener('change', ()=>{ wrapMode = chkWrap.checked; resetLearning(); });
 
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
+        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
+        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
+        isTraining = evalSavedTraining;
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
@@ -2250,7 +2600,25 @@
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
       wrapMode = chkWrap.checked;
-      newGame();
+      const saved = loadGameState('snake');
+      if(saved && saved.Q){
+        if(saved.boardSizeKey) boardSizeSel.value = saved.boardSizeKey;
+        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+        if(saved.wrapMode!==undefined){ wrapMode = saved.wrapMode; chkWrap.checked = wrapMode; }
+        newGame(); // fresh board; snake's state is heading-relative so saved Q still applies
+        Q = saved.Q || {};
+        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+        bestLen = saved.bestLen||1; foodEaten = saved.foodEaten||0;
+        scoreHistory = saved.scoreHistory||[]; lenHistory = saved.lenHistory||[];
+        if(saved.ALPHA) ALPHA = saved.ALPHA;
+        if(saved.GAMMA) GAMMA = saved.GAMMA;
+        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      } else {
+        newGame();
+      }
       requestAnimationFrame(frame);
     }
 
@@ -2276,7 +2644,9 @@
     let stepsInEpisode = 0;
     let rally = 0;
     let epsilon = 1.0;
-    const EPS_MIN = 0.05, EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.9;
+    const EPS_MIN = 0.05;
+    let EPS_DECAY = 0.985, ALPHA = 0.15, GAMMA = 0.9;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
     let maxStepsPerEpisode = 2000;
     let bestRally = 0, totalHits = 0;
     let rallyHistory = [], chartHistory = [];
@@ -2311,6 +2681,15 @@
 
     const btnToggleTrain = document.getElementById('pgBtnToggleTrain');
     const btnResetQ = document.getElementById('pgBtnResetQ');
+    const btnEval = document.getElementById('pgBtnEval');
+    const evalOverlay = document.getElementById('pgEvalOverlay');
+    const confFill = document.getElementById('pgConfFill');
+    const alphaSlider = document.getElementById('pgAlphaSlider');
+    const alphaVal = document.getElementById('pgAlphaVal');
+    const gammaSlider = document.getElementById('pgGammaSlider');
+    const gammaVal = document.getElementById('pgGammaVal');
+    const decaySlider = document.getElementById('pgDecaySlider');
+    const decayVal = document.getElementById('pgDecayVal');
     const btnNewGame = document.getElementById('pgBtnNewGame');
     const paddleSizeSel = document.getElementById('pgPaddleSize');
     const difficultySel = document.getElementById('pgDifficulty');
@@ -2403,7 +2782,7 @@
       const {reward, done} = doStep(action);
       const state1 = done ? null : getState();
       const nextMax = done ? 0 : Math.max(...getQ(state1));
-      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      if(!evalMode) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       stepsInEpisode++;
       if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
     }
@@ -2486,6 +2865,15 @@
       const avg = rallyHistory.length ? (rallyHistory.reduce((a,b)=>a+b,0)/rallyHistory.length).toFixed(1) : '0';
       statAvg.textContent = avg;
       statGoals.textContent = totalHits;
+      updateConfidence();
+    }
+
+    function updateConfidence(){
+      const q = getQ(getState());
+      const spread = Math.max(...q) - Math.min(...q);
+      const pct = Math.max(0, Math.min(100, Math.round((spread/6)*100)));
+      confFill.style.width = pct+'%';
+      confFill.style.background = 'hsl('+Math.round(pct*1.2)+',70%,55%)';
     }
 
     function frame(){
@@ -2501,7 +2889,19 @@
       requestAnimationFrame(frame);
     }
 
+    function serializePong(){
+      return {
+        paddleSizeKey, difficultyKey,
+        Q, episode, epsilon, bestRally, totalHits, rallyHistory, chartHistory,
+        ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('pong', serializePong()); }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
     function newGame(){
+      clearGameState('pong');
       paddleSizeKey = paddleSizeSel.value;
       difficultyKey = difficultySel.value;
       paddleH = PADDLE_SIZES[paddleSizeKey] || 70;
@@ -2519,6 +2919,7 @@
       bestRally = 0; totalHits = 0;
       rallyHistory = []; chartHistory = [];
       resetRound();
+      persist();
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -2536,13 +2937,53 @@
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trail=[]; });
     chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
+        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
+        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
+        isTraining = evalSavedTraining;
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
       stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
-      newGame();
+      const saved = loadGameState('pong');
+      if(saved && saved.Q){
+        if(saved.paddleSizeKey) paddleSizeSel.value = saved.paddleSizeKey;
+        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+        newGame(); // fresh round; pong's state is relative-to-ball so saved Q still applies
+        Q = saved.Q || {};
+        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+        bestRally = saved.bestRally||0; totalHits = saved.totalHits||0;
+        rallyHistory = saved.rallyHistory||[]; chartHistory = saved.chartHistory||[];
+        if(saved.ALPHA) ALPHA = saved.ALPHA;
+        if(saved.GAMMA) GAMMA = saved.GAMMA;
+        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      } else {
+        newGame();
+      }
       requestAnimationFrame(frame);
     }
 
@@ -2569,7 +3010,9 @@
     let episode = 0;
     let stepsInEpisode = 0;
     let epsilon = 1.0;
-    const EPS_MIN = 0.02, EPS_DECAY = 0.995, ALPHA = 0.2, GAMMA = 0.98;
+    const EPS_MIN = 0.02;
+    let EPS_DECAY = 0.995, ALPHA = 0.2, GAMMA = 0.98;
+    let evalMode = false, evalSavedEpsilon=null, evalSavedSpeed=null, evalSavedTurbo=null, evalSavedTraining=null;
     const SOLVED_STEPS = 300;
     let maxStepsPerEpisode = Infinity; // no artificial ceiling — an episode only ends when the pole actually falls or the cart runs off track
     let bestSteps = 0, solvedCount = 0;
@@ -2599,6 +3042,14 @@
 
     const btnToggleTrain = document.getElementById('cpBtnToggleTrain');
     const btnResetQ = document.getElementById('cpBtnResetQ');
+    const btnEval = document.getElementById('cpBtnEval');
+    const evalOverlay = document.getElementById('cpEvalOverlay');
+    const alphaSlider = document.getElementById('cpAlphaSlider');
+    const alphaVal = document.getElementById('cpAlphaVal');
+    const gammaSlider = document.getElementById('cpGammaSlider');
+    const gammaVal = document.getElementById('cpGammaVal');
+    const decaySlider = document.getElementById('cpDecaySlider');
+    const decayVal = document.getElementById('cpDecayVal');
     const btnNewGame = document.getElementById('cpBtnNewGame');
     const difficultySel = document.getElementById('cpDifficulty');
     const speedSlider = document.getElementById('cpSpeedSlider');
@@ -2659,7 +3110,7 @@
       const {reward, done} = doStep(action);
       const state1 = done ? null : getState();
       const nextMax = done ? 0 : Math.max(...getQ(state1));
-      q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
+      if(!evalMode) q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       stepsInEpisode++;
       if(stepsInEpisode > bestSteps) bestSteps = stepsInEpisode; // update the record live, not just when the episode ends
       if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode();
@@ -2784,7 +3235,19 @@
       requestAnimationFrame(frame);
     }
 
+    function serializeCP(){
+      return {
+        difficultyKey,
+        Q, episode, epsilon, bestSteps, solvedCount, stepsHistory, chartHistory,
+        ALPHA, GAMMA, EPS_DECAY
+      };
+    }
+    function persist(){ saveGameState('cartpole', serializeCP()); }
+    setInterval(persist, 3000);
+    window.addEventListener('beforeunload', persist);
+
     function newGame(){
+      clearGameState('cartpole');
       difficultyKey = difficultySel.value;
       xLimit = (DIFF[difficultyKey] || DIFF.medium).xLimit;
       Q = {};
@@ -2801,6 +3264,7 @@
       bestSteps = 0; solvedCount = 0;
       stepsHistory = []; chartHistory = [];
       resetPole();
+      persist();
     }
 
     btnToggleTrain.addEventListener('click', ()=>{
@@ -2817,13 +3281,52 @@
     chkTrail.addEventListener('change', ()=>{ showTrail = chkTrail.checked; if(!showTrail) trailX=[]; });
     chkTurbo.addEventListener('change', ()=>{ turboMode = chkTurbo.checked; frameCounter = 0; });
 
+    alphaSlider.addEventListener('input', ()=>{ ALPHA = parseInt(alphaSlider.value,10)/100; alphaVal.textContent = ALPHA.toFixed(2); });
+    gammaSlider.addEventListener('input', ()=>{ GAMMA = parseInt(gammaSlider.value,10)/100; gammaVal.textContent = GAMMA.toFixed(2); });
+    decaySlider.addEventListener('input', ()=>{ EPS_DECAY = parseInt(decaySlider.value,10)/1000; decayVal.textContent = EPS_DECAY.toFixed(3); });
+
+    btnEval.addEventListener('click', ()=>{
+      evalMode = !evalMode;
+      evalOverlay.classList.add('show');
+      setTimeout(()=>evalOverlay.classList.remove('show'), 700);
+      if(evalMode){
+        evalSavedEpsilon = epsilon; evalSavedSpeed = stepsPerFrame; evalSavedTurbo = turboMode; evalSavedTraining = isTraining;
+        epsilon = 0; stepsPerFrame = 1; turboMode = false; chkTurbo.checked = false; isTraining = true;
+        btnToggleTrain.textContent = '⏸ עצור אימון';
+        btnEval.textContent = '⏹ צא ממצב בדיקה'; btnEval.classList.add('active');
+      } else {
+        epsilon = evalSavedEpsilon!==null ? evalSavedEpsilon : epsilon;
+        stepsPerFrame = evalSavedSpeed || parseInt(speedSlider.value,10);
+        turboMode = evalSavedTurbo; chkTurbo.checked = turboMode;
+        isTraining = evalSavedTraining;
+        btnToggleTrain.textContent = isTraining ? '⏸ עצור אימון' : '▶ התחל אימון';
+        btnEval.textContent = '🧪 מצב בדיקה'; btnEval.classList.remove('active');
+      }
+    });
+
     function ensureStarted(){
       if(started) return;
       started = true;
       stepsPerFrame = parseInt(speedSlider.value,10);
       showTrail = chkTrail.checked;
       turboMode = chkTurbo.checked;
-      newGame();
+      const saved = loadGameState('cartpole');
+      if(saved && saved.Q){
+        if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
+        newGame();
+        Q = saved.Q || {};
+        episode = saved.episode||0; epsilon = saved.epsilon===undefined?1.0:saved.epsilon;
+        bestSteps = saved.bestSteps||0; solvedCount = saved.solvedCount||0;
+        stepsHistory = saved.stepsHistory||[]; chartHistory = saved.chartHistory||[];
+        if(saved.ALPHA) ALPHA = saved.ALPHA;
+        if(saved.GAMMA) GAMMA = saved.GAMMA;
+        if(saved.EPS_DECAY) EPS_DECAY = saved.EPS_DECAY;
+        alphaSlider.value = Math.round(ALPHA*100); alphaVal.textContent = ALPHA.toFixed(2);
+        gammaSlider.value = Math.round(GAMMA*100); gammaVal.textContent = GAMMA.toFixed(2);
+        decaySlider.value = Math.round(EPS_DECAY*1000); decayVal.textContent = EPS_DECAY.toFixed(3);
+      } else {
+        newGame();
+      }
       requestAnimationFrame(frame);
     }
 

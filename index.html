@@ -23,6 +23,7 @@
     --agent:#ffd23f;
     --start:#3ddc97;
     --goal:#ff5c7a;
+    --item:#ffd23f;
     --road:#2b2f45;
     --curb:#ff5c7a;
   }
@@ -160,6 +161,7 @@
             <span><span class="dot" style="background:var(--goal)"></span> יעד</span>
             <span><span class="dot" style="background:var(--agent)"></span> הסוכן</span>
             <span><span class="dot" style="background:var(--wall)"></span> קיר</span>
+            <span id="mzItemLegend" style="display:none;"><span class="dot" style="background:var(--item)"></span> פריט</span>
           </div>
           <div class="heat-legend" id="mzHeatLegend">
             <span>ערך Q נמוך</span><div class="bar"></div><span>גבוה</span>
@@ -175,6 +177,7 @@
               <div class="stat"><div class="label">שיא צעדים לפתרון</div><div class="value" id="mzStatBest">–</div></div>
               <div class="stat"><div class="label">אחוז הצלחה (50 אחרונות)</div><div class="value" id="mzStatSuccess">0%</div></div>
               <div class="stat"><div class="label">סה"כ הגעות ליעד</div><div class="value" id="mzStatGoals">0</div></div>
+              <div class="stat" id="mzStatItemsWrap" style="display:none;"><div class="label">פריטים שנאספו (נוכחי)</div><div class="value" id="mzStatItems">0/0</div></div>
             </div>
           </div>
           <div class="chart-wrap">
@@ -205,6 +208,20 @@
               </label>
             </div>
             <div class="row" style="margin-bottom:10px;">
+              <label class="field-inline">פריטים לאיסוף (0=כבוי)
+                <select id="mzItemCount">
+                  <option value="0" selected>0 — כבוי</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="8">8</option>
+                </select>
+              </label>
+            </div>
+            <div class="row" style="margin-bottom:10px;">
               <button class="btn-secondary" id="mzBtnNewMaze">🎲 מבוך חדש</button>
             </div>
             <label class="field">
@@ -218,7 +235,7 @@
         </div>
       </div>
       <p class="footer-note">
-        הסוכן בוחר כיוון בכל צעד. פגיעה בקיר מסיימת את האפיזודה מיד (עונש) והוא חוזר להתחלה; הגעה ליעד נותנת תגמול גבוה. רמת הקושי קובעת כמה "קיצורי דרך" יש במבוך וכמה כואבת פגיעה בקיר. epsilon יורד עם הזמן — מעבר הדרגתי מחקירה אקראית לניצול הידע הנצבר.
+        הסוכן בוחר כיוון בכל צעד. פגיעה בקיר מסיימת את האפיזודה מיד (עונש) והוא חוזר להתחלה; הגעה ליעד נותנת תגמול גבוה. רמת הקושי קובעת כמה "קיצורי דרך" יש במבוך וכמה כואבת פגיעה בקיר. epsilon יורד עם הזמן — מעבר הדרגתי מחקירה אקראית לניצול הידע הנצבר. אם מגדירים "פריטים לאיסוף" מעל 0, מפוזרים במבוך פריטים אקראיים שהסוכן חייב לאסוף — הגעה ליעד נחשבת "הצלחה" רק לאחר שנאספו כל הפריטים; מצב הלמידה (Q) מביא בחשבון גם אילו פריטים כבר נאספו.
       </p>
     </div>
 
@@ -425,6 +442,9 @@
     let isTraining = false, stepsPerFrame = 10;
     let showHeatmap = true, showTrail = true, showPolicy = true;
     let wallPenalty = -5, braidProb = 0.12;
+    let itemCount = 0;
+    let items = [];       // [{r,c}]
+    let collectedMask = 0; // bitmask of collected items in current episode
 
     const DIFF = {
       easy:   {braid:0.35, wallPenalty:-2, stepsMult:4},
@@ -459,6 +479,10 @@
     const chkHeatmap = document.getElementById('mzChkHeatmap');
     const chkPolicy = document.getElementById('mzChkPolicy');
     const chkTrail = document.getElementById('mzChkTrail');
+    const itemCountSel = document.getElementById('mzItemCount');
+    const itemLegend = document.getElementById('mzItemLegend');
+    const statItemsWrap = document.getElementById('mzStatItemsWrap');
+    const statItems = document.getElementById('mzStatItems');
 
     function generateMaze(r, c){
       const cells = [];
@@ -508,25 +532,66 @@
     }
 
     let V = {}; // visit counts per (cell, action) — lets us tell "actually tried" from "still default 0"
+    const FULL_MASK = () => (itemCount>0 ? (1<<itemCount)-1 : 0);
 
-    function getQ(r,c){
-      const k = r+','+c;
+    function getQ(r,c,mask){
+      const k = r+','+c+','+mask;
       if(!Q[k]) Q[k] = [0,0,0,0];
       return Q[k];
     }
-    function getV(r,c){
-      const k = r+','+c;
+    function getV(r,c,mask){
+      const k = r+','+c+','+mask;
       if(!V[k]) V[k] = [0,0,0,0];
       return V[k];
     }
-    function maxQ(r,c){ return Math.max(...getQ(r,c)); }
+    function maxQ(r,c,mask){ return Math.max(...getQ(r,c,mask)); }
 
-    function chooseAction(r,c){
+    function chooseAction(r,c,mask){
       if(Math.random() < epsilon) return Math.floor(Math.random()*4);
-      const q = getQ(r,c);
+      const q = getQ(r,c,mask);
       let best=0;
       for(let i=1;i<4;i++) if(q[i] > q[best]) best = i;
       return best;
+    }
+
+    // Pick reachable cells (BFS from start over the generated maze) for item placement,
+    // excluding the start and goal cells.
+    function pickItemCells(count){
+      if(count<=0) return [];
+      const seen = Array.from({length:rows},()=>Array(cols).fill(false));
+      const q = [{r:0,c:0}];
+      seen[0][0] = true;
+      const reachable = [];
+      while(q.length){
+        const {r,c} = q.shift();
+        if(!(r===0&&c===0) && !(r===rows-1&&c===cols-1)) reachable.push({r,c});
+        const cell = maze[r][c];
+        DIRS.forEach(d=>{
+          if(cell[d]) return;
+          const [dr,dc] = DELTA[d];
+          const nr=r+dr, nc=c+dc;
+          if(nr>=0&&nr<rows&&nc>=0&&nc<cols&&!seen[nr][nc]){
+            seen[nr][nc]=true;
+            q.push({r:nr,c:nc});
+          }
+        });
+      }
+      for(let i=reachable.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [reachable[i],reachable[j]] = [reachable[j],reachable[i]];
+      }
+      return reachable.slice(0, Math.min(count, reachable.length));
+    }
+
+    function checkItemPickup(){
+      if(itemCount<=0) return;
+      for(let i=0;i<items.length;i++){
+        const bit = 1<<i;
+        if(collectedMask & bit) continue;
+        if(items[i].r===agent.r && items[i].c===agent.c){
+          collectedMask |= bit;
+        }
+      }
     }
 
     function doStep(actionIdx){
@@ -541,26 +606,35 @@
         agent.r += dr;
         agent.c += dc;
         reward = -1;
-        if(agent.r===rows-1 && agent.c===cols-1){
-          reward = 100;
-          done = true;
+        const beforeMask = collectedMask;
+        checkItemPickup();
+        if(collectedMask !== beforeMask) reward += 20; // bonus for picking up a new item
+        const atGoal = agent.r===rows-1 && agent.c===cols-1;
+        if(atGoal){
+          if(itemCount<=0 || collectedMask===FULL_MASK()){
+            reward = 100;
+            done = true;
+          } else {
+            reward -= 2; // reached goal too early, still missing items — small nudge, episode continues
+          }
         }
       }
       return {reward, done};
     }
 
     function learnStep(){
-      const r0=agent.r, c0=agent.c;
-      const action = chooseAction(r0,c0);
-      const q = getQ(r0,c0);
-      const v = getV(r0,c0);
+      const r0=agent.r, c0=agent.c, mask0=collectedMask;
+      const action = chooseAction(r0,c0,mask0);
+      const q = getQ(r0,c0,mask0);
+      const v = getV(r0,c0,mask0);
       const {reward, done} = doStep(action);
-      const nextMax = maxQ(agent.r, agent.c);
+      const nextMax = maxQ(agent.r, agent.c, collectedMask);
       q[action] += ALPHA * (reward + GAMMA*nextMax - q[action]);
       v[action]++;
       stepsInEpisode++;
       if(showTrail) trail.push({r:agent.r,c:agent.c});
-      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode(agent.r===rows-1 && agent.c===cols-1);
+      const success = agent.r===rows-1 && agent.c===cols-1 && (itemCount<=0 || collectedMask===FULL_MASK());
+      if(done || stepsInEpisode >= maxStepsPerEpisode) finishEpisode(success);
     }
 
     function finishEpisode(success){
@@ -577,6 +651,7 @@
       agent = {r:0,c:0};
       stepsInEpisode = 0;
       trail = [];
+      collectedMask = 0;
     }
 
     function sizeCanvas(){
@@ -595,8 +670,8 @@
       for(let r=0;r<rows;r++){
         for(let c=0;c<cols;c++){
           if(r===rows-1 && c===cols-1) continue;
-          const q = getQ(r,c);
-          const v = getV(r,c);
+          const q = getQ(r,c,collectedMask);
+          const v = getV(r,c,collectedMask);
           const tried = [0,1,2,3].filter(i=>v[i]>0);
           if(tried.length===0) continue; // nothing actually tried here yet — don't guess
           let best=tried[0];
@@ -626,14 +701,14 @@
       if(showHeatmap){
         let mn=Infinity, mx=-Infinity;
         for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-          const v = maxQ(r,c);
+          const v = maxQ(r,c,collectedMask);
           if(v<mn) mn=v;
           if(v>mx) mx=v;
         }
         const range = (mx-mn) || 1;
         for(let r=0;r<rows;r++){
           for(let c=0;c<cols;c++){
-            const v = maxQ(r,c);
+            const v = maxQ(r,c,collectedMask);
             const t = Math.max(0, Math.min(1, (v-mn)/range));
             if(v!==0){
               const hue = 235 - t*175;
@@ -650,6 +725,32 @@
       ctx.fillStyle = getCss('--goal');
       ctx.fillRect((cols-1)*cell,(rows-1)*cell,cell,cell);
       ctx.globalAlpha = 1;
+
+      if(itemCount>0){
+        items.forEach((it,i)=>{
+          const collected = (collectedMask & (1<<i)) !== 0;
+          const cx = it.c*cell+cell/2, cy = it.r*cell+cell/2;
+          ctx.save();
+          ctx.globalAlpha = collected ? 0.25 : 1;
+          ctx.fillStyle = getCss('--item');
+          ctx.beginPath();
+          const s = cell*0.22;
+          for(let k=0;k<5;k++){
+            const ang = -Math.PI/2 + k*(2*Math.PI/5);
+            const angIn = ang + Math.PI/5;
+            const px = cx+Math.cos(ang)*s, py = cy+Math.sin(ang)*s;
+            const pxIn = cx+Math.cos(angIn)*s*0.45, pyIn = cy+Math.sin(angIn)*s*0.45;
+            if(k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+            ctx.lineTo(pxIn,pyIn);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#00000055';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
 
       if(showTrail && trail.length>1){
         ctx.strokeStyle = 'rgba(255,210,63,0.55)';
@@ -716,6 +817,10 @@
       const rate = successHistory.length ? Math.round(100*successHistory.reduce((a,b)=>a+b,0)/successHistory.length) : 0;
       statSuccess.textContent = rate+'%';
       statGoals.textContent = goalsReached;
+      if(itemCount>0){
+        let n=0; for(let i=0;i<itemCount;i++) if(collectedMask&(1<<i)) n++;
+        statItems.textContent = n+'/'+itemCount;
+      }
     }
 
     function frame(){
@@ -733,9 +838,14 @@
       const diff = DIFF[difficultySel.value] || DIFF.medium;
       wallPenalty = diff.wallPenalty;
       braidProb = diff.braid;
-      maxStepsPerEpisode = rows*cols*diff.stepsMult;
+      itemCount = parseInt(itemCountSel.value, 10) || 0;
+      maxStepsPerEpisode = rows*cols*diff.stepsMult + itemCount*rows;
       maze = generateMaze(rows, cols);
       applyBraiding(maze, rows, cols, braidProb);
+      items = pickItemCells(itemCount);
+      collectedMask = 0;
+      itemLegend.style.display = itemCount>0 ? 'flex' : 'none';
+      statItemsWrap.style.display = itemCount>0 ? 'block' : 'none';
       Q = {}; V = {};
       agent = {r:0,c:0};
       trail = [];
@@ -749,6 +859,7 @@
       Q = {}; V = {};
       agent = {r:0,c:0};
       trail = [];
+      collectedMask = 0;
       episode = 0; stepsInEpisode = 0; epsilon = 1.0;
       bestSteps = null; goalsReached = 0;
       successHistory = []; stepsHistory = [];
@@ -762,6 +873,7 @@
     btnNewMaze.addEventListener('click', newMaze);
     mazeSizeSel.addEventListener('change', newMaze);
     difficultySel.addEventListener('change', newMaze);
+    itemCountSel.addEventListener('change', newMaze);
     speedSlider.addEventListener('input', ()=>{
       stepsPerFrame = parseInt(speedSlider.value,10);
       speedVal.textContent = stepsPerFrame;

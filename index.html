@@ -242,6 +242,10 @@
         <input type="range" id="displaySpeedSlider" min="1" max="100" value="100" aria-label="מהירות תצוגה">
         <span class="training-speed-end">🐢 איטי</span><span class="training-speed-end">🚀 מהיר</span>
       </div>
+      <label class="training-speed-control" style="cursor:pointer;gap:6px;" title="נועל את שני הסרגלים יחד — הזזת אחד תזיז גם את השני">
+        <input type="checkbox" id="linkSpeedSliders" style="margin:0;">
+        <span>🔗 אחד סרגלים</span>
+      </label>
     </div>
 
     <!-- ================= MAZE SECTION ================= -->
@@ -299,7 +303,9 @@
                   <option value="15" selected>בינוני 15×15</option>
                   <option value="21">גדול 21×21</option>
                   <option value="27">ענק 27×27</option>
+                  <option value="custom">מותאם אישית</option>
                 </select>
+                <input type="number" id="mzMazeSizeCustom" min="3" step="1" value="15" style="display:none; width:70px; margin-inline-start:6px;">
               </label>
               <label class="field-inline">רמת קושי
                 <select id="mzDifficulty">
@@ -1060,6 +1066,11 @@
       trainingSpeed = +trainingSpeedSlider.value;
       resetTrainingTiming();
       updateTrainingSpeedUI();
+      if(linkSpeedSliders && linkSpeedSliders.checked){
+        displaySpeed = trainingSpeed;
+        resetDisplayTiming();
+        updateDisplaySpeedUI();
+      }
     });
   }
   updateTrainingSpeedUI();
@@ -1075,9 +1086,27 @@
       displaySpeed = +displaySpeedSlider.value;
       resetDisplayTiming();
       updateDisplaySpeedUI();
+      if(linkSpeedSliders && linkSpeedSliders.checked){
+        trainingSpeed = displaySpeed;
+        resetTrainingTiming();
+        updateTrainingSpeedUI();
+      }
     });
   }
   updateDisplaySpeedUI();
+
+  // תיבת "אחד סרגלים" — כשמסומנת, שני הסרגלים נעולים יחד: הזזת אחד מזיזה את השני
+  // מיד לאותו ערך, ומאותו רגע כל שינוי בכל אחד מהם משתקף מיידית בשני.
+  const linkSpeedSliders = document.getElementById('linkSpeedSliders');
+  if(linkSpeedSliders){
+    linkSpeedSliders.addEventListener('change', ()=>{
+      if(linkSpeedSliders.checked){
+        displaySpeed = trainingSpeed;
+        resetDisplayTiming();
+        updateDisplaySpeedUI();
+      }
+    });
+  }
 
   // דאבל-קליק על סרגל מהירות האימון/התצוגה — מעתיק אליו את הערך של הסרגל השני בדיוק
   if(trainingSpeedSlider && displaySpeedSlider){
@@ -1207,6 +1236,16 @@
     const decayVal = document.getElementById('mzDecayVal');
     const btnNewMaze = document.getElementById('mzBtnNewMaze');
     const mazeSizeSel = document.getElementById('mzMazeSize');
+    const mazeSizeCustom = document.getElementById('mzMazeSizeCustom');
+    const STD_MAZE_SIZES = ['10','15','21','27'];
+    function currentMazeSize(){
+      if(mazeSizeSel.value==='custom'){
+        const v = Math.max(3, parseInt(mazeSizeCustom.value,10) || 15);
+        mazeSizeCustom.value = v;
+        return v;
+      }
+      return parseInt(mazeSizeSel.value, 10);
+    }
     const difficultySel = document.getElementById('mzDifficulty');
     const chkHeatmap = document.getElementById('mzChkHeatmap');
     const chkPolicy = document.getElementById('mzChkPolicy');
@@ -1616,7 +1655,14 @@
       rows = saved.rows; cols = saved.cols; maze = saved.maze; items = Array.isArray(saved.items) ? saved.items : [];
       itemCount = saved.itemCount||0;
       if(saved.difficultyKey) difficultySel.value = saved.difficultyKey;
-      if(saved.mazeSizeKey) mazeSizeSel.value = saved.mazeSizeKey;
+      if(saved.mazeSizeKey && STD_MAZE_SIZES.includes(saved.mazeSizeKey)){
+        mazeSizeSel.value = saved.mazeSizeKey;
+        mazeSizeCustom.style.display = 'none';
+      } else {
+        mazeSizeSel.value = 'custom';
+        mazeSizeCustom.value = rows;
+        mazeSizeCustom.style.display = 'inline-block';
+      }
       const diff = DIFF[difficultySel.value] || DIFF.medium;
       wallPenalty = diff.wallPenalty; braidProb = diff.braid;
       maxStepsPerEpisode = rows*cols*diff.stepsMult + itemCount*rows;
@@ -1640,7 +1686,7 @@
 
     function newMaze(){
       clearGameState('maze');
-      rows = cols = parseInt(mazeSizeSel.value, 10);
+      rows = cols = currentMazeSize();
       const diff = DIFF[difficultySel.value] || DIFF.medium;
       wallPenalty = diff.wallPenalty;
       braidProb = diff.braid;
@@ -1680,7 +1726,11 @@
     });
     btnResetQ.addEventListener('click', resetLearning);
     btnNewMaze.addEventListener('click', newMaze);
-    mazeSizeSel.addEventListener('change', newMaze);
+    mazeSizeSel.addEventListener('change', ()=>{
+      mazeSizeCustom.style.display = mazeSizeSel.value==='custom' ? 'inline-block' : 'none';
+      newMaze();
+    });
+    mazeSizeCustom.addEventListener('change', ()=>{ if(mazeSizeSel.value==='custom') newMaze(); });
     difficultySel.addEventListener('change', newMaze);
     itemCountSel.addEventListener('change', newMaze);
     chkHeatmap.addEventListener('change', ()=>{ showHeatmap = chkHeatmap.checked; });
@@ -3467,7 +3517,10 @@
           runTrainingBudgetThrottled('pong', learnStep, trainingBudgetMs());
         }
         if(displaySpeed!==trainingSpeed) runDisplaySteps('pong', advanceDisplay, ts);
-        if(!isTraining || displaySpeed!==trainingSpeed){ if(displaySpeed!==trainingSpeed) drawDisplay(); else draw(); drawChart(); }
+        if(!isTraining || displaySpeed!==trainingSpeed || frameCounter % trainingRenderEvery() === 0){
+          if(displaySpeed!==trainingSpeed) drawDisplay(); else draw();
+          drawChart();
+        }
         if(!isTraining || frameCounter % trainingRenderEvery() === 0) updateStats();
       }
       requestAnimationFrame(frame);
@@ -4001,7 +4054,7 @@
     let score = 0;
     let epsilon = 1.0;
     const EPS_MIN = 0.02;
-    let EPS_DECAY = 0.99, ALPHA = 0.15, GAMMA = 0.95;
+    let EPS_DECAY = 0.999, ALPHA = 0.15, GAMMA = 0.97;
     let evalMode = false, evalSavedEpsilon=null, evalSavedTraining=null;
     let maxStepsPerEpisode = 20000;
     let bestScore = 0, totalPipes = 0;
@@ -4017,7 +4070,12 @@
       hard:   { gap:105, speed:3.6 }
     };
 
-    const N_Y=8, N_V=6, N_DX=5, N_DY=8;
+    // State uses the bird's PREDICTED position one step ahead (if it doesn't flap) relative to
+    // the gap, plus its current velocity and distance to the pipe. This gives the agent the
+    // exact signal it needs to decide "will I fall past the gap if I don't flap now?", which is
+    // far more learnable than raw absolute height. DY range is narrowed to the band that's
+    // actually decision-relevant instead of spanning the whole board.
+    const N_V=10, N_DX=6, N_DY=20, DY_RANGE=120;
 
     const canvas = document.getElementById('flCanvas');
     const ctx = canvas.getContext('2d');
@@ -4065,11 +4123,11 @@
 
     function getState(){
       const p = nextPipe();
-      const by = bucket(bird.y, 0, H, N_Y);
+      const predictedY = bird.y + bird.vy + GRAVITY; // where the bird lands next frame if it doesn't flap
+      const dy = bucket(p.gapY - predictedY, -DY_RANGE, DY_RANGE, N_DY);
       const bv = bucket(bird.vy, -10, 10, N_V);
       const dx = bucket(p.x - BIRD_X, 0, W, N_DX);
-      const dy = bucket(p.gapY - bird.y, -H, H, N_DY);
-      return by+','+bv+','+dx+','+dy;
+      return dy+','+bv+','+dx;
     }
 
     function getQ(state){
@@ -4104,8 +4162,11 @@
       spawnPipeIfNeeded();
 
       const distanceAfter = Math.abs(nextPipe().gapY - bird.y);
-      const alignmentReward = Math.max(-0.04, Math.min(0.04, (distanceBefore-distanceAfter)/H));
-      let reward = 0.1 + alignmentReward, done = false;
+      // Alignment shaping now carries real weight (previously capped at ±0.04, which was
+      // swamped by the flat 0.1 survive bonus and gave the agent almost no signal about
+      // whether it was actually approaching the gap center).
+      const alignmentReward = (distanceBefore - distanceAfter) / H;
+      let reward = 0.02 + alignmentReward, done = false;
 
       if(bird.y - BIRD_R < 0 || bird.y + BIRD_R > H){
         reward = -10; done = true;
